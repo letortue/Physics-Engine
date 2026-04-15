@@ -1,4 +1,5 @@
 ﻿{
   "window_res": [ 960, 540 ],
-  "interval":  16
+  "interval": 16,
+  "canvas_res": [2,2]
 }

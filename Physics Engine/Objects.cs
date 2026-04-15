@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Physics_Engine
@@ -14,27 +15,60 @@ namespace Physics_Engine
         public Vec3[] velocity { get; set; }
         public Vec3[] acceleration { get; set; }
         public SKPaint paint { get; set; }
+        
+        
 
 
-        public void draw(SKCanvas canvas, int upper_bound, double aspect_ratio, int[] size, int radius = 2)
+
+
+
+        public void draw(SKCanvas canvas, int radius = 2)
         {
+            string json = File.ReadAllText("config.json");
+            Config config = JsonSerializer.Deserialize<Config>(json)!;
+
             for (int i = 0; i < this.coordinates.Length; i++)
             {
-                double x = ((1 + (-this.coordinates[i].X / this.coordinates[i].Z)) / 2) * size[0] / aspect_ratio;
-                double y = ((1 + (-this.coordinates[i].Y / this.coordinates[i].Z)) / 2) * size[1];
+                
+                Vec3 transformed = new Vec3(this.coordinates[i].X, this.coordinates[i].Y, this.coordinates[i].Z);
+                Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
+                transformed = transformed.WorldToCamera(inverse);
+                
+                double x = transformed.X;
+                double y = transformed.Y;
+                double z = transformed.Z;
+                //Console.WriteLine($"{x}, {y}, {z}");
+                if (transformed.dot(new Vec3(0,0,-1)) > 0)
+                {
 
-                canvas.DrawCircle((float)x, (float)y, radius, paint);
+                    double pScreenX = -x / z;
+                    double pScreenY = y / z;
+                    double pNDCX = ((pScreenX + config.canvas_res[0]) / 2) / config.canvas_res[0];
+                    double pNDCY = ((pScreenY + config.canvas_res[1]) / 2) / config.canvas_res[1];
+                    double pRasterX = pNDCX * config.window_res[0];
+                    double pRasterY = pNDCY * config.window_res[1];
+                    Console.WriteLine($"{pRasterX}, {pRasterY}");
+                    canvas.DrawPoint((float)pRasterX, (float)pRasterY, paint);
+                    //Console.WriteLine($"{x},{y}");
+
+                }
+
+
+                
             }
-
-
+ 
 
 
         }
 
 
+
+
         public void update(Object o, double pixelsPerMeter = 50)
         {
-            double t = 0.016;
+            string json = File.ReadAllText("config.json");
+            Config config = JsonSerializer.Deserialize<Config>(json)!;
+            double t = (float) config.interval / 1000 ;
             int v = velocity.Length - 1;
             for (int j = 0; j < o.coordinates.Length; j++)
             {

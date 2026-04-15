@@ -9,6 +9,7 @@ namespace Physics_Engine
     internal class Config
     {
         public int[] window_res {get; set;}
+        public int[] canvas_res {get; set;}
         public int interval { get; set; }
         
     }
