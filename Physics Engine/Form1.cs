@@ -14,16 +14,19 @@ namespace Physics_Engine
 
     public partial class Form1 : Form
     {
-
+        Config config { get; set; }
         
         private SKControl skControl;
-        public float timeElapsed;
+        private bool[] KeyPressed;
+
+
 
         //private Ball ball1;
         //private Ball ball2;
-        private PolyHedron p;
-
-
+        private Triangle t1;
+        private Triangle t2;
+        public SKCanvas canvas;
+        Image image;
 
 
         public Form1()
@@ -32,93 +35,93 @@ namespace Physics_Engine
 
 
             //
+            KeyPressed = new bool[6];
+            for (int i = 0; i < 4; i++) KeyPressed[i] = false;
+            
 
+            
             string json = File.ReadAllText("config.json");
-            Config config = JsonSerializer.Deserialize<Config>(json)!;
+            config = JsonSerializer.Deserialize<Config>(json)!;
 
 
             InitializeComponent();
-         
-            this.ClientSize = new Size(config.window_res[0], config.window_res[1]);
+            
+            this.ClientSize = new Size(config.image_res[0], config.image_res[1]);
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
 
             skControl = new SKControl();
-            skControl.Size = new Size(config.window_res[0], config.window_res[1]);
+            skControl.Size = new Size(config.image_res[0], config.image_res[1]);
             skControl.Dock = DockStyle.Fill;
             skControl.PaintSurface += OnPaintSurface;
+            skControl.MouseMove += OnMouseMove;
+            skControl.KeyDown += OnKeyDown;
+            skControl.KeyUp += OnKeyUp;
 
             Controls.Add(skControl);
             //
 
 
-            var paint = new SKPaint
-            {
-                Color = SKColors.Red,
-                IsAntialias = true,
-                StrokeWidth = 5
-
-            };
-            var paint2 = new SKPaint
-            {
-                Color = SKColors.Blue,
-
-            };
 
 
-            Vec3[] velo = [new Vec3(0, 0.0, 0.0), new Vec3(-2, -0.5, 0)];
-            Vec3[] acc = [new Vec3(-0.00, -0.00, 0.0), new Vec3(-1, -9.81, -2)];
-            Vec3[] coordss =
+
+
+            Vec3[] velo = [new Vec3(0, 0, 0), new Vec3(0, 0, 0), new Vec3(0, 0, 0)];
+            Vec3[] acc = [new Vec3(0.0, 0, 0), new Vec3(0.0, 0, 0), new Vec3(0.0, 0, 0)];
+            Vec3[] coords =
             [
                 new Vec3(-1, -1, -10),
-                new Vec3(-1, -1, -3),
                 new Vec3(-1,  1, -10),
-                new Vec3(-1,  1, -3),
-                new Vec3(1, -1,  -10),
-                new Vec3(1, -1,  -3),
-                new Vec3(1,  1,  -10),
-                new Vec3(1,  1,  -3),
+                new Vec3(1, -1, -10)
+                
+
+
+            ];
+            Vec3[] coords2 =
+            [
+                new Vec3(-1, -1, -4),
+                new Vec3(-1,  1, -4),
+                new Vec3(1, -1, -4)
+
 
             ];
 
-            Matrix4 m1 = new Matrix4();
-            Matrix4 m2 = new Matrix4();
-            m1.data = new double[4,4] { 
-                { 1, 3, 1, 0 },
-                { 6, 4, 7, 0 },
-                { 1, 2, 0, 0 },
-                { 0, 0, 0, 0 } 
-            };
-            m2.data = new double[4,4] { 
-                { 1, 3, 1, 0 },
-                { 6, 4, 7, 0 },
-                { 1, 2, 0, 0 },
-                { 0, 0, 0, 0 } 
-            };
+
+            Vec3[] colors = new Vec3[3];
+            double[] opacity = { 255, 255, 255};
+            colors[0] = new Vec3(168, 51, 155);
+            colors[1] = new Vec3(79, 64, 64);
+            colors[2] = new Vec3(100, 255, 0);
+            
             
 
-            p = new PolyHedron(8, coordss, velo[0], acc[0], paint);
-            
+            t1 = new Triangle( coords, velo, acc, colors, opacity);
+            t2 = new Triangle( coords2, velo, acc, colors, opacity);
+
+            image = new Image([t1, t2]);
 
             //
             int pixelsPerMeter = 10;
             Timer timer = new Timer();
-            timeElapsed = 0;
+            
             timer.Interval = config.interval;
             timer.Tick += (s, e) =>
             {
-                Globals.Camera.move(new Vec3(0,0,-0.05));
-                if(timeElapsed == 100)
-                {
-                    Globals.Camera.rotate(0,Math.PI/2);
-                }
-                
-                p.update(p, pixelsPerMeter);
-                Console.WriteLine(Globals.Camera.matrix);
 
-                timeElapsed++;
+                if (KeyPressed[0]) Globals.Camera.move(new Vec3(0,0,-config.movement_speed));
+                if (KeyPressed[1]) Globals.Camera.move(new Vec3(-config.movement_speed, 0,0));
+                if (KeyPressed[2]) Globals.Camera.move(new Vec3(0,0,config.movement_speed));
+                if (KeyPressed[3]) Globals.Camera.move(new Vec3(config.movement_speed, 0,0));
+                if (KeyPressed[4]) Globals.Camera.move(new Vec3(0, -config.movement_speed, 0));
+                if (KeyPressed[5]) Globals.Camera.move(new Vec3(0, config.movement_speed, 0));
                 
-                this.Text = $"{timeElapsed}, {timeElapsed / 60}";
+                image.update(t1, pixelsPerMeter);  //
+                image.update(t2, pixelsPerMeter); //
+                image.mapImage();
+
+                Globals.timeElapsed++;
+                
+                this.Text = $"{Globals.timeElapsed}, {Globals.timeElapsed / 60}";
 
 
                 skControl.Invalidate();
@@ -130,13 +133,10 @@ namespace Physics_Engine
         private void OnPaintSurface(object sender, SKPaintSurfaceEventArgs e)
         {
 
-            var canvas = e.Surface.Canvas;
-            canvas.Clear(SKColors.White);
-
+            canvas = e.Surface.Canvas;
+            canvas.Clear(SKColors.Black);
+            image.drawImage(canvas);
             
-            //ball1.draw(canvas);
-            //ball2.draw(canvas);
-            p.draw(canvas, 1 );
             
         }
 
@@ -144,6 +144,87 @@ namespace Physics_Engine
         {
 
         }
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            Point center = new Point(this.Width / 2, this.Height / 2);
+            Cursor.Position = PointToScreen(center);
+            Cursor.Hide();
+            this.Focus();
+        }
+        public void OnMouseMove(object sender, MouseEventArgs e)
+        {
+
+
+            int dx = e.X - (this.Width / 2);
+            int dy = e.Y - (this.Height / 2);
+            //Console.WriteLine(dx);
+            //Console.WriteLine(dy);
+            
+            Globals.Camera.rotate(0, -((double) dy * config.sensitivity));
+            Globals.Camera.rotate(1, -((double) dx * config.sensitivity));
+            
+
+            Point center = new Point(this.Width / 2, this.Height / 2);
+            Cursor.Position = PointToScreen(center);
+        }
+        public void OnKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.W)
+            {
+                KeyPressed[0] = true;
+            }
+            if (e.KeyCode == Keys.A)
+            {
+                KeyPressed[1] = true;
+            }
+            if (e.KeyCode == Keys.S)
+            {
+                KeyPressed[2] = true;
+            }
+            if (e.KeyCode == Keys.D)
+            {
+                KeyPressed[3] = true;
+            }
+            if (e.KeyCode == Keys.ControlKey)
+            {
+                KeyPressed[4] = true;
+            }
+            if (e.KeyCode == Keys.Space)
+            {
+                KeyPressed[5] = true;
+            }
+
+        }
+        public void OnKeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.W)
+            {
+                KeyPressed[0] = false;
+            }
+            if (e.KeyCode == Keys.A)
+            {
+                KeyPressed[1] = false;
+            }
+            if (e.KeyCode == Keys.S)
+            {
+                KeyPressed[2] = false;
+            }
+            if (e.KeyCode == Keys.D)
+            {
+                KeyPressed[3] = false;
+            }
+            if (e.KeyCode == Keys.ControlKey)
+            {
+                KeyPressed[4] = false;
+            }
+            if (e.KeyCode == Keys.Space)
+            {
+                KeyPressed[5] = false;
+            }
+        }
+
+
     }
     
 }

@@ -8,9 +8,13 @@ namespace Physics_Engine
 {
     internal class Config
     {
-        public int[] window_res {get; set;}
+        public int[] image_res {get; set;}
         public int[] canvas_res {get; set;}
         public int interval { get; set; }
+        public double sensitivity { get; set; }
+        public double clipping_range { get; set; }
+        public double FOV { get; set; }
+        public double movement_speed { get; set; }
         
     }
 }

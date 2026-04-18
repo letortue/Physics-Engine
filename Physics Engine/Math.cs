@@ -31,14 +31,22 @@ namespace Physics_Engine
             return this.X * v.X + this.Y * v.Y + this.Z * v.Z;
             
         }
+        public Vec3 cross(Vec3 v)
+        {
+            Vec3 result = new Vec3();
+            result.X = this.Y * v.Z - this.Z * v.Y;
+            result.Y = this.Z * v.X - this.X * v.Z;
+            result.Z = this.X * v.Y - this.Y * v.X;
+            return result;
+        }
         public Vec3 WorldToCamera(Matrix4 inverse)
         {
 
             Vec4 vf = new Vec4(this.X, this.Y, this.Z, 1);
 
-            Console.WriteLine(vf);
+            
             vf = inverse * vf;
-            Console.WriteLine(vf);
+            
             
             
          
@@ -46,9 +54,31 @@ namespace Physics_Engine
 
 
         }
+
+        public Vec3 normalize()
+        {
+            double x = this.X;
+            double y = this.Y;
+            double z = this.Z;
+            Vec3 v = new Vec3(x,y,z);
+            double magnitude = Math.Sqrt(Math.Pow(x, 2) + Math.Pow(y, 2) + Math.Pow(z, 2));
+            if (magnitude == 0) return v;
+            v.X /= magnitude;
+            v.Y /= magnitude;
+            v.Z /= magnitude;
+            return v;
+        }
         public static Vec3 operator +(Vec3 lhs, Vec3 rhs)
         {
             return new Vec3(lhs.X + rhs.X, lhs.Y + rhs.Y, lhs.Z + rhs.Z);
+        }
+        public static Vec3 operator /(Vec3 lhs, Vec3 rhs)
+        {
+            return new Vec3(lhs.X / rhs.X, lhs.Y / rhs.Y, lhs.Z / rhs.Z);
+        }
+        public static Vec3 operator /(Vec3 lhs, double d)
+        {
+            return new Vec3(lhs.X / d, lhs.Y / d, lhs.Z / d);
         }
         public static Vec3 operator -(Vec3 lhs, Vec3 rhs)
         {
@@ -85,6 +115,7 @@ namespace Physics_Engine
             return new Vec4(this.X * v.X, this.Y * v.Y, this.Z * v.Z, this.W * v.W);
 
         }
+        
 
         public static Vec4 operator +(Vec4 lhs, Vec4 rhs)
         {
