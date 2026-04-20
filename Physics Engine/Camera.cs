@@ -13,14 +13,16 @@ namespace Physics_Engine
     {
 
         public Matrix4 matrix;
-        public Vec3 worldPos;
         
-
+        private double yaw;
+        private double pitch;
+        readonly Config config;
         public Camera()
         {
-            
+            string json = File.ReadAllText("config.json");
+            config = JsonSerializer.Deserialize<Config>(json)!;
             matrix = new Matrix4();
-            worldPos = new Vec3(matrix[0,3], matrix[1, 3], matrix[2, 3]);
+            
         }
         
         public void move(Vec3 vector)
@@ -35,11 +37,28 @@ namespace Physics_Engine
 
             
         }
-        public void rotate(int axis, double degrees)
+        public void rotate(int axis, double d)
         {
-            
-            matrix = matrix * Matrix4.rotationMatrix(axis, degrees);
+            if(axis == 0) pitch += d * config.sensitivity;
+            if(axis == 1) yaw += d * config.sensitivity;
+            pitch = Math.Clamp(pitch, -Math.PI, Math.PI);
+            Console.WriteLine(pitch);
+            Matrix4 pitchMatrix = Matrix4.rotationMatrix(0, -pitch);
+            Matrix4 yawMatrix = Matrix4.rotationMatrix(1, -yaw);
+            Matrix4 rotation = yawMatrix * pitchMatrix;
 
+            
+            double tx = Globals.Camera.matrix[0, 3];
+            double ty = Globals.Camera.matrix[1, 3];
+            double tz = Globals.Camera.matrix[2, 3];
+
+            
+            Globals.Camera.matrix = rotation;
+
+            
+            Globals.Camera.matrix[0, 3] = tx;
+            Globals.Camera.matrix[1, 3] = ty;
+            Globals.Camera.matrix[2, 3] = tz;
 
         }
 

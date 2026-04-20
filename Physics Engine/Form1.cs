@@ -161,8 +161,8 @@ namespace Physics_Engine
             //Console.WriteLine(dx);
             //Console.WriteLine(dy);
             
-            Globals.Camera.rotate(0, -((double) dy * config.sensitivity));
-            Globals.Camera.rotate(1, -((double) dx * config.sensitivity));
+            Globals.Camera.rotate(0,dy);
+            Globals.Camera.rotate(1,dx);
             
 
             Point center = new Point(this.Width / 2, this.Height / 2);
