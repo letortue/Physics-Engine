@@ -127,15 +127,18 @@ namespace Physics_Engine
                                 double w0 = edgeFunction(vertices[1], vertices[2], p);
                                 double w1 = edgeFunction(vertices[2], vertices[0], p);
                                 double w2 = edgeFunction(vertices[0], vertices[1], p);
-                                if (backFacing) { w0 = -w0; w1 = -w1; w2 = -w2; area = -area; }
+                                double areab = area;
+                                if (backFacing) { w0 = -w0; w1 = -w1; w2 = -w2; areab = -area; }
+
                                 if (w0 >= 0 && w1 >= 0 && w2 >= 0)
                                 {
 
                                     double[] opacity = obj.opacity;
 
-                                    w0 /= area;
-                                    w1 /= area;
-                                    w2 /= area;
+                                    w0 /= areab;
+                                    w1 /= areab;
+                                    w2 /= areab;
+
                                     double oneOverZ = w0 / vertices[0].Z + w1 / vertices[1].Z + w2 / vertices[2].Z;
                                     double r = (w0 * c0.X / vertices[0].Z + w1 * c1.X / vertices[1].Z + w2 * c2.X / vertices[2].Z) / oneOverZ;
                                     double g = (w0 * c0.Y / vertices[0].Z + w1 * c1.Y / vertices[1].Z + w2 * c2.Y / vertices[2].Z) / oneOverZ;
@@ -143,6 +146,7 @@ namespace Physics_Engine
                                     double o = (w0 * opacity[0] / vertices[0].Z + w1 * opacity[1] / vertices[1].Z + w2 * opacity[2] / vertices[2].Z) / oneOverZ;
 
                                     double z = 1.0 / oneOverZ;
+                                    //if (z < 0) z = -z;
 
                                     if (z <= depths[j* config.image_res[0] + i])
                                     {
@@ -178,40 +182,20 @@ namespace Physics_Engine
 
             Vec3[] vertices = new Vec3[o.coordinates.Length];
             Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
-
+            Matrix4 projectionM = Matrix4.projectionMatrix();
+            double f = 1 / Math.Tan(config.FOV / 2 / 57.2958D);
             for (int i = 0; i < o.coordinates.Length; i++)
             {
 
 
-                Vec3 transformed = new Vec3(o.coordinates[i].X, o.coordinates[i].Y, o.coordinates[i].Z);
-                transformed = transformed.WorldToCamera(inverse);
+                Vec3 v = new Vec3(o.coordinates[i].X, o.coordinates[i].Y, o.coordinates[i].Z);
+                v = v.WorldToCamera(inverse);
+                Vec4 projected = new Vec4(v.X, v.Y, v.Z, 1);
+                projected = projectionM * projected;
 
-
-                //Vec3 relative_pos = new Vec3(Globals.Camera.matrix[0, 3], Globals.Camera.matrix[1, 3], Globals.Camera.matrix[2, 3]) - transformed;
-                double x = transformed.X;
-                double y = transformed.Y;
-                double z = transformed.Z;
-
-                //if (transformed.dot(new Vec3(0, 0, -1)) > 0 && relative_pos.Z < config.clipping_range)
-                //{
-                    double f = 1 / Math.Tan(config.FOV / 2 / 57.2958D);
-
-                    double aspect_ratio = (double) config.image_res[0] / (double) config.image_res[1];
-
-                    double pScreenX = (x * f / aspect_ratio) / -z;
-                    double pScreenY = (y * f) / -z;
-
-
-                    double l = -1;
-                    double r = 1;
-                    double b = -1;
-                    double t = 1;
-                    double pNDCX = 2 * pScreenX / (r - l) - (r + l) / (r - l);
-                    double pNDCY = 2 * pScreenY / (t - b) - (t + b) / (t - b);
-
-                    double pRasterX = (pNDCX + 1) / 2 * config.image_res[0];
-                    double pRasterY = (1 - pNDCY) / 2 * config.image_res[1];
-                    double pRasterZ = -z;
+                    double pRasterX = (projected.X + 1) / 2 * config.image_res[0];
+                    double pRasterY = (1 - projected.Y) / 2 * config.image_res[1];
+                    double pRasterZ = -v.Z;
 
                     vertices[i] = new Vec3(pRasterX, pRasterY, pRasterZ);
 

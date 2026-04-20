@@ -90,7 +90,7 @@ namespace Physics_Engine
             Vec3[] colors = new Vec3[3];
             double[] opacity = { 255, 255, 255};
             colors[0] = new Vec3(168, 51, 155);
-            colors[1] = new Vec3(79, 64, 64);
+            colors[1] = new Vec3(255, 255, 255);
             colors[2] = new Vec3(100, 255, 0);
             
             

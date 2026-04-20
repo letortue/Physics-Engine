@@ -3,10 +3,10 @@
   "interval": 7,
   "canvas_res": [ 2, 2 ],
   "sensitivity": 0.001,
-  "clipping_range": 100,
+  "clipping_range": 50,
   "focal_length": 1,
   "aperturemm": 2,
-  "FOV": 90,
+  "FOV": 100,
   "movement_speed":  0.05
   
   

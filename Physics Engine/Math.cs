@@ -6,10 +6,12 @@ using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Physics_Engine
 {
+
     public struct Vec3
     {
         public double X { get; set; }
@@ -137,7 +139,7 @@ namespace Physics_Engine
     public class Matrix4
     {
         public double[,] data;
-
+        private static Config config { get; set; }
         public override string ToString()
         {
             return $"{data[0,0]} {data[0, 1]} {data[0, 2]} {data[0, 3]} {Environment.NewLine} {data[1, 0]} {data[1, 1]} {data[1, 2]} {data[1, 3]} {Environment.NewLine} {data[2, 0]} {data[2, 1]} {data[2, 2]} {data[2, 3]} {Environment.NewLine} {data[3, 0]} {data[3, 1]} {data[3, 2]} {data[3, 3]}";
@@ -151,6 +153,9 @@ namespace Physics_Engine
 
         public Matrix4(bool zeros = false)
         {
+            string json = File.ReadAllText("config.json");
+
+            config = JsonSerializer.Deserialize<Config>(json)!;
             if (zeros == true)
             {
                 this.data = new double[4,4]
@@ -197,8 +202,19 @@ namespace Physics_Engine
             }
             return m;
         }
-
-        public Matrix4 rotationMatrix(int axis, double degrees)
+        public static Matrix4 projectionMatrix()
+        {
+            Matrix4 m = new Matrix4();
+            m[3, 2] = -1;
+            m[3, 3] = 0;
+            m[2, 2] = -config.clipping_range / (config.clipping_range - 1); 
+            m[2, 3] = -config.clipping_range / (config.clipping_range - 1);
+            double f = 1 / Math.Tan(config.FOV / 2 / 57.2958D);
+            m[0, 0] = f;
+            m[1, 1] = f;
+            return m;
+        }
+        public static Matrix4 rotationMatrix(int axis, double degrees)
         {
             Matrix4 m = new Matrix4();
             if(axis == 0)
@@ -280,15 +296,28 @@ namespace Physics_Engine
             return m;
         }
 
+        public static Vec4 movementMult(Matrix4 m, Vec4 v)
+        {
+            Vec4 v1 = new Vec4(0, 0, 0, 1);
+
+            
+            v1.X = ((m[0, 0] * v.X) + (m[0, 1] * v.Y) + (m[0, 2] * v.Z) + (m[0, 3] * v.W));
+            v1.Y = ((m[1, 0] * v.X) + (m[1, 1] * v.Y) + (m[1, 2] * v.Z) + (m[1, 3] * v.W));
+            v1.Z = (m[2, 0] * v.X) + (m[2, 1] * v.Y) + (m[2, 2] * v.Z) + (m[2, 3] * v.W);
+                
+            
+            return v1;
+        }
         public static Vec4 operator *(Matrix4 m, Vec4 v)
         {
-            Vec4 v1 = new Vec4(0, 0, 0, 0)
-            {
-                X = (m[0, 0] * v.X) + (m[0, 1] * v.Y) + (m[0, 2] * v.Z) + (m[0, 3] * v.W),
-                Y = (m[1, 0] * v.X) + (m[1, 1] * v.Y) + (m[1, 2] * v.Z) + (m[1, 3] * v.W),
-                Z = (m[2, 0] * v.X) + (m[2, 1] * v.Y) + (m[2, 2] * v.Z) + (m[2, 3] * v.W),
-                W = (m[3, 0] * v.X) + (m[3, 1] * v.Y) + (m[3, 2] * v.Z) + (m[3, 3] * v.W)
-            };
+            Vec4 v1 = new Vec4(0, 0, 0, 1);
+
+            double W = ((m[3, 0] * v.X) + (m[3, 1] * v.Y) + (m[3, 2] * v.Z) + (m[3, 3] * v.W));
+            v1.X = ((m[0, 0] * v.X) + (m[0, 1] * v.Y) + (m[0, 2] * v.Z) + (m[0, 3] * v.W)) / W;
+            v1.Y = ((m[1, 0] * v.X) + (m[1, 1] * v.Y) + (m[1, 2] * v.Z) + (m[1, 3] * v.W)) / W;
+            v1.Z = ((m[2, 0] * v.X) + (m[2, 1] * v.Y) + (m[2, 2] * v.Z) + (m[2, 3] * v.W)) / W;
+
+
             return v1;
         }
     }
