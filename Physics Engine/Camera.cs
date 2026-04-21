@@ -17,6 +17,7 @@ namespace Physics_Engine
         private double yaw;
         private double pitch;
         readonly Config config;
+        Matrix4 yawMatrix;
         public Camera()
         {
             string json = File.ReadAllText("config.json");
@@ -27,8 +28,8 @@ namespace Physics_Engine
         
         public void move(Vec3 vector)
         {
-            Vec4 v = new Vec4(vector.X, vector.Y, vector.Z, 0);
-            v = Matrix4.movementMult(Globals.Camera.matrix, v);
+            Vec4 v = new Vec4(vector.X, vector.Y, vector.Z, 1);
+            v = yawMatrix * v;
             Globals.Camera.matrix[0, 3] += v.X;
             Globals.Camera.matrix[1, 3] += v.Y;
             Globals.Camera.matrix[2, 3] += v.Z;
@@ -44,7 +45,7 @@ namespace Physics_Engine
             pitch = Math.Clamp(pitch, -Math.PI, Math.PI);
             Console.WriteLine(pitch);
             Matrix4 pitchMatrix = Matrix4.rotationMatrix(0, -pitch);
-            Matrix4 yawMatrix = Matrix4.rotationMatrix(1, -yaw);
+            yawMatrix = Matrix4.rotationMatrix(1, -yaw);
             Matrix4 rotation = yawMatrix * pitchMatrix;
 
             
