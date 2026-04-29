@@ -1,13 +1,13 @@
 ﻿{
-  "image_res": [ 960, 540 ],
+  "image_res": [ 540, 540 ],
   "interval": 7,
   "canvas_res": [ 2, 2 ],
   "sensitivity": 0.001,
-  "clipping_range": 50,
+  "clipping_range": 200,
   "focal_length": 1,
   "aperturemm": 2,
   "FOV": 100,
-  "movement_speed":  0.05
+  "movement_speed":  0.3
   
   
   

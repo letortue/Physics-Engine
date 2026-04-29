@@ -43,7 +43,7 @@ namespace Physics_Engine
             if(axis == 0) pitch += d * config.sensitivity;
             if(axis == 1) yaw += d * config.sensitivity;
             pitch = Math.Clamp(pitch, -Math.PI, Math.PI);
-            Console.WriteLine(pitch);
+            
             Matrix4 pitchMatrix = Matrix4.rotationMatrix(0, -pitch);
             yawMatrix = Matrix4.rotationMatrix(1, -yaw);
             Matrix4 rotation = yawMatrix * pitchMatrix;
