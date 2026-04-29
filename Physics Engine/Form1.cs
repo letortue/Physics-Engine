@@ -18,20 +18,15 @@ namespace Physics_Engine
         
         private SKControl skControl;
         private bool[] KeyPressed;
-
-
-
-        //private Ball ball1;
-        //private Ball ball2;
-        private Triangle t1;
-        private Triangle t2;
+        Object[] objects;
+ 
         public SKCanvas canvas;
         Image image;
 
 
         public Form1()
         {
-
+            
 
 
             //
@@ -92,16 +87,20 @@ namespace Physics_Engine
             colors[0] = new Vec3(168, 51, 155);
             colors[1] = new Vec3(255, 255, 255);
             colors[2] = new Vec3(100, 255, 0);
-            
-            
 
-            t1 = new Triangle( coords, velo, acc, colors, opacity);
-            t2 = new Triangle( coords2, velo, acc, colors, opacity);
 
-            image = new Image([t1, t2]);
+
+
+            Vec3 dir = new Vec3(0, -6, -5);
+            Vec3 normal = (new Vec3(0,1,0)).normalize();
+
+            Object[] objects = {  new Ball(coords[0], velo[0], acc[0], 2), new Plane(velo[0], acc[0], normal, dir) };
+
+
+            image = new Image(objects);
 
             //
-            int pixelsPerMeter = 10;
+            
             Timer timer = new Timer();
             
             timer.Interval = config.interval;
@@ -114,9 +113,8 @@ namespace Physics_Engine
                 if (KeyPressed[3]) Globals.Camera.move(new Vec3(config.movement_speed, 0,0));
                 if (KeyPressed[4]) Globals.Camera.move(new Vec3(0, -config.movement_speed, 0));
                 if (KeyPressed[5]) Globals.Camera.move(new Vec3(0, config.movement_speed, 0));
-                
-                image.update(t1, pixelsPerMeter);  //
-                image.update(t2, pixelsPerMeter); //
+
+                foreach (Object o in objects) image.update(o); //
                 image.mapImage();
 
                 Globals.timeElapsed++;
