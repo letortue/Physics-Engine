@@ -70,6 +70,12 @@ namespace Physics_Engine
             v.Z /= magnitude;
             return v;
         }
+
+        public double magnitude()
+        {
+            return Math.Sqrt(Math.Pow(this.X, 2) + Math.Pow(this.Y, 2) + Math.Pow(this.Z, 2));
+        }
+
         public static Vec3 operator +(Vec3 lhs, Vec3 rhs)
         {
             return new Vec3(lhs.X + rhs.X, lhs.Y + rhs.Y, lhs.Z + rhs.Z);

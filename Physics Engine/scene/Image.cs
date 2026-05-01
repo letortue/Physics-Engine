@@ -64,13 +64,14 @@ namespace Physics_Engine
 
             for (int j = 0; j < o.coordinates.Length; j++)
             {
-
-                o.velocity[j].X += t * o.acceleration[j].X;
-                o.coordinates[j].X += t * o.velocity[j].X * pixelsPerMeter;
-                o.velocity[j].Y += t * o.acceleration[j].Y;
-                o.coordinates[j].Y += t * o.velocity[j].Y * pixelsPerMeter;
-                o.velocity[j].Z += t * o.acceleration[j].Z;
-                o.coordinates[j].Z += t * o.velocity[j].Z * pixelsPerMeter;
+                
+                o.attributes.velocity[j].X += t * o.attributes.acceleration[j].X;
+                o.coordinates[j].X += t * o.attributes.velocity[j].X * pixelsPerMeter;
+                o.attributes.velocity[j].Y += t * o.attributes.acceleration[j].Y;
+                o.coordinates[j].Y += t * o.attributes.velocity[j].Y * pixelsPerMeter;
+                o.attributes.velocity[j].Z += t * o.attributes.acceleration[j].Z;
+                o.coordinates[j].Z += t * o.attributes.velocity[j].Z * pixelsPerMeter;
+                
 
             }
         }
@@ -140,9 +141,9 @@ namespace Physics_Engine
                             else
                             {
                                 depths[(int)(j * config.image_res[0] + i)] = depth;
-                                pixels[index + 0] = 255;
-                                pixels[index + 1] = 255;
-                                pixels[index + 2] = 255;
+                                pixels[index + 0] = (byte) result.color.Z;
+                                pixels[index + 1] = (byte) result.color.Y;
+                                pixels[index + 2] = (byte) result.color.X;
                                 pixels[index + 3] = 255;
                                 
                             }
