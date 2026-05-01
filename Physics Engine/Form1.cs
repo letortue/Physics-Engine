@@ -18,7 +18,7 @@ namespace Physics_Engine
         
         private SKControl skControl;
         private bool[] KeyPressed;
-        Object[] objects;
+        readonly Object[] objects;
  
         public SKCanvas canvas;
         Image image;
@@ -81,20 +81,30 @@ namespace Physics_Engine
 
             ];
 
-
+            double[] opacity = { 255, 255, 255 };
             Vec3[] colors = new Vec3[3];
-            double[] opacity = { 255, 255, 255};
+            
             colors[0] = new Vec3(168, 51, 155);
             colors[1] = new Vec3(255, 255, 255);
             colors[2] = new Vec3(100, 255, 0);
+            Vec3[] colors2 = new Vec3[3];
+            
+            colors2[0] = new Vec3(255, 255, 255);
+            colors2[1] = new Vec3(0, 255, 0);
+            colors2[2] = new Vec3(0, 0, 0);
 
-
+            VertexAttributes attributes = new VertexAttributes
+            {
+                velocity = velo,
+                acceleration = acc,
+                colors = colors2
+            };
 
 
             Vec3 dir = new Vec3(0, -6, -5);
             Vec3 normal = (new Vec3(0,1,0)).normalize();
-
-            Object[] objects = {  new Ball(coords[0], velo[0], acc[0], 2), new Plane(velo[0], acc[0], normal, dir) };
+            bool backCulling = false;
+            Object[] objects = {  new Ball(coords[0], attributes, 2), new Plane(attributes, normal, dir) , new Triangle(coords2, attributes, backCulling)};
 
 
             image = new Image(objects);
