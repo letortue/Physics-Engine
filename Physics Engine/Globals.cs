@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Physics_Engine
@@ -11,5 +12,6 @@ namespace Physics_Engine
     {
         public static Camera Camera = new Camera();
         public static int timeElapsed = 0;
+        
     }
 }

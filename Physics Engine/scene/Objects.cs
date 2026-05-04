@@ -255,30 +255,53 @@ namespace Physics_Engine
 
         public override HitResult getIntersectionPoint(Ray r)
         {
+            Vec3 tuv = cramersRule(r, this.coordinates);
+            double w0 = 1 - tuv[1] - tuv[2];
+            double w1 = tuv[1];
+            double w2 = tuv[2];
+            if (w0 < 0 || w1 < 0 || w2 < 0 || w0 > 1 || w1 > 1 || w2 > 1) { return new HitResult { hit = false }; }
 
+            if ((onesided && normal.dot(r.direction) > 0) || Math.Abs(normal.dot(r.direction)) < 1e-6 || tuv[0] < 0) return new HitResult { hit = false };
             
-            if ((onesided && normal.dot(r.direction) > 0) || Math.Abs(normal.dot(r.direction)) < 1e-6) return new HitResult { hit = false };
+            Vec3 point = r.origin + tuv[0] * r.direction;
+            HitResult result = new HitResult
+            {
+                hit = true,
+                point = point,
+                normal = normal,
+                t = tuv[0],
+                w0 = w0,
+                w1 = w1,
+                w2 = w2
+            };
             
-            HitResult result = p.getIntersectionPoint(r);
-
-            if(result.t <= 0) return new HitResult { hit = false };
-
-            Vec3 i0 = (result.point - coordinates[0]).cross(coordinates[1] - coordinates[0]);
-            Vec3 i1 = (result.point - coordinates[1]).cross(coordinates[2] - coordinates[1]);
-            Vec3 i2 = (result.point - coordinates[2]).cross(coordinates[0] - coordinates[2]) ;
-            if (i0.dot(normal) < 0 || i1.dot(normal) < 0 || i2.dot(normal) < 0){ result.hit = false; return result;  }
-            double w0 = i1.magnitude() / area;
-            double w1 = i2.magnitude() / area;
-            double w2 = i0.magnitude() / area;
             double R = attributes.colors[0].X * w0 + attributes.colors[1].X * w1 + attributes.colors[2].X * w2;
             double G = attributes.colors[0].Y * w0 + attributes.colors[1].Y * w1 + attributes.colors[2].Y * w2;
             double B = attributes.colors[0].Z * w0 + attributes.colors[1].Z * w1 + attributes.colors[2].Z * w2;
             result.color.X = R; result.color.Y = G; result.color.Z = B;
 
-            //if ((Globals.timeElapsed % 100) == 0) Console.WriteLine($"{w0}, {w1}, {w2}");
-
             return result;
+
             
+
+
+
+        }
+        public static Vec3 cramersRule(Ray r, Vec3[] ABC)
+        {
+
+            Vec3 E1 = ABC[1] - ABC[0];
+            Vec3 E2 = ABC[2] - ABC[0];
+            Vec3 h = r.direction.cross(E2);
+            double det = E1.dot(h);
+            Vec3 s = r.origin - ABC[0];
+            double u = s.dot(h) / det;
+            Vec3 q = s.cross(E1);
+            double v = r.direction.dot(q) / det;
+            double t = E2.dot(q) / det;
+
+
+            return new Vec3(t, u, v);
         }
     }
 

@@ -104,7 +104,7 @@ namespace Physics_Engine
             Vec3 dir = new Vec3(0, -6, -5);
             Vec3 normal = (new Vec3(0,1,0)).normalize();
             bool backCulling = false;
-            Object[] objects = {  new Ball(coords[0], attributes, 2), new Plane(attributes, normal, dir) , new Triangle(coords2, attributes, backCulling)};
+            Object[] objects = {  new Ball(coords[0], attributes, 2), /*new Plane(attributes, normal, dir) , */ new Triangle(coords2, attributes, backCulling)};
 
 
             image = new Image(objects);

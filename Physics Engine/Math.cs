@@ -17,6 +17,23 @@ namespace Physics_Engine
         public double X { get; set; }
         public double Y { get; set; }
         public double Z { get; set; }
+        public double this[int i]
+        {
+            get
+            {
+                if (i == 0) return X;
+                else if (i==1) return Y; 
+                else if (i==2) return Z;
+                else throw new IndexOutOfRangeException();
+            }
+            set
+            {
+                if (i == 0) X = value;
+                else if (i == 1) Y = value;
+                else if (i == 2) Z = value;
+                else throw new IndexOutOfRangeException();
+            } 
+        }
 
         public Vec3(double X, double Y, double Z)
         {
@@ -107,7 +124,25 @@ namespace Physics_Engine
         public double Y { get; set; }
         public double Z { get; set; }
         public double W { get; set; }
-
+        public double this[int i]
+        {
+            get
+            {
+                if (i == 0) return X;
+                else if (i == 1) return Y;
+                else if (i == 2) return Z;
+                else if (i == 3) return W;
+                else throw new IndexOutOfRangeException();
+            }
+            set
+            {
+                if (i == 0) X = value;
+                else if (i == 1) Y = value;
+                else if (i == 2) Z = value;
+                else if (i == 3) W = value;
+                else throw new IndexOutOfRangeException();
+            }
+        }
         public Vec4(double X, double Y, double Z, double W)
         {
             this.X = X; this.Y = Y; this.Z = Z; this.W = W;
@@ -149,6 +184,152 @@ namespace Physics_Engine
 
 
     }
+    public class Matrix3
+    {
+        public double[,] data;
+        private static Config config { get; set; }
+        public override string ToString()
+        {
+            return $"{data[0, 0]} {data[0, 1]} {data[0, 2]}  {Environment.NewLine} {data[1, 0]} {data[1, 1]} {data[1, 2]} {Environment.NewLine} {data[2, 0]} {data[2, 1]} {data[2, 2]}   ";
+        }
+
+        public double this[int i, int j]
+        {
+            get => data[i, j];
+            set => data[i, j] = value;
+        }
+        public Vec3 this[int i]
+        {
+            get
+            {
+                return new Vec3(data[0,i], data[1,i], data[2,i]);
+            }
+            set
+            {
+                data[0, i] = value.X;
+                data[1, i] = value.Y;
+                data[2, i] = value.Z;
+            }
+
+        }
+
+        public Matrix3(bool zeros = false)
+        {
+            string json = File.ReadAllText("config.json");
+
+            config = JsonSerializer.Deserialize<Config>(json)!;
+            if (zeros == true)
+            {
+                this.data = new double[3, 3]
+                {
+                { 0, 0, 0 },
+                { 0, 0, 0 },
+                { 0, 0, 0 }
+                
+            };
+            }
+            else
+            {
+                this.data = new double[3, 3] {
+                { 1, 0, 0},
+                { 0, 1, 0},
+                { 0, 0, 1 }
+                
+            };
+            }
+
+
+        }
+        public double determinant()
+        {
+            Matrix3 m = this;
+            return (m[0, 0] * (m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1]))
+                - (m[1, 0] * (m[0, 1] * m[2, 2] - m[2, 1] * m[0, 2]))
+                + (m[2, 0] * (m[0, 1] * m[1, 2] - m[1, 1] * m[0, 2]));
+        }
+        
+        public Matrix3 transpose3()
+        {
+            Matrix3 m = new Matrix3();
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    m[i, j] = this.data[j, i];
+                }
+            }
+            return m;
+        }
+
+
+        public static Matrix3 rotationMatrix(int axis, double degrees)
+        {
+            Matrix3 m = new Matrix3();
+            if (axis == 0)
+            {
+                m[1, 1] = Math.Cos(degrees);
+                m[2, 2] = Math.Cos(degrees);
+                m[1, 2] = -Math.Sin(degrees);
+                m[2, 1] = Math.Sin(degrees);
+            }
+            else
+            if (axis == 1)
+            {
+                m[0, 0] = Math.Cos(degrees);
+                m[0, 2] = Math.Sin(degrees);
+                m[2, 0] = -Math.Sin(degrees);
+                m[2, 2] = Math.Cos(degrees);
+            }
+            else
+            if (axis == 2)
+            {
+                m[0, 0] = Math.Cos(degrees);
+                m[0, 1] = -Math.Sin(degrees);
+                m[1, 0] = Math.Sin(degrees);
+                m[1, 1] = Math.Cos(degrees);
+            }
+            return m;
+        }
+        
+
+
+        public static Matrix3 operator *(Matrix3 m1, Matrix3 m2)
+        {
+            Matrix3 m = new Matrix3();
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    m[i, j] = (m1[i, 0] * m2[0, j]) + (m1[i, 1] * m2[1, j]) + (m1[i, 2] * m2[2, j]);
+                }
+            }
+            return m;
+        }
+        public static Matrix3 operator +(Matrix3 m1, Matrix3 m2)
+        {
+            Matrix3 m = new Matrix3();
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    m[i, j] = m1[i, j] + m2[i, j];
+                }
+            }
+            return m;
+        }
+
+
+        public static Vec3 operator *(Matrix3 m, Vec3 v)
+        {
+            Vec3 v1 = new Vec3(0, 0, 0);
+            v1.X = (m[0, 0] * v.X) + (m[0, 1] * v.Y) + (m[0, 2] * v.Z);
+            v1.Y = (m[1, 0] * v.X) + (m[1, 1] * v.Y) + (m[1, 2] * v.Z);
+            v1.Z = (m[2, 0] * v.X) + (m[2, 1] * v.Y) + (m[2, 2] * v.Z);
+
+
+            return v1;
+        }
+    }
     public class Matrix4
     {
         public double[,] data;
@@ -163,6 +344,7 @@ namespace Physics_Engine
             get => data[i, j];
             set => data[i, j] = value;
         }
+        
 
         public Matrix4(bool zeros = false)
         {
