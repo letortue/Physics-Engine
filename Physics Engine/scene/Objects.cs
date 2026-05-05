@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -38,33 +39,76 @@ namespace Physics_Engine
     }
     public abstract class Object
     {
-        public Vec3[] coordinates { get; set; }
+        public Vec3[] vertices { get; set; }
         public Vec3[] velocity { get; set; }
         public Vec3[] acceleration { get; set; }
         public Vec3[] color { get; set; }
         public double[] opacity { get; set; }
         public VertexAttributes attributes;
-        public bool solveQuadratic(double a, double b, double c, out double? t1, out double? t2)
-        {
-            double delta = Math.Pow(b, 2) - 4 * a * c;
-            if (delta < 0) { t1 = null; t2 = null; return false; }
-            if (delta > 0)
-            {
-                double sqdelta = Math.Sqrt(delta);
-                t1 = (-b - sqdelta) / (2 * a);
-                t2 = (-b + sqdelta) / (2 * a);
-                if (t1 > t2) { double? x = t2; t2 = t1; t1 = x; }
-                return true;
-            }
-            t1 = -b / (2 * a);
-            t2 = null;
-            return true;
-        }
-        public abstract HitResult getIntersectionPoint(Ray r);
+        
+        public abstract HitResult GetIntersectionPoint(Ray r);
     }
 
 
-
+    public class Mesh : Object
+    {
+        public int[] faces { get; set; }
+        public int nfaces { get; set; }
+        public int[] vertexIndices { get; set; }
+        public bool convex { get; set; }
+        public bool[] onesided { get; set; }
+        public Triangle[] triangles { get; set; }
+        public Mesh(Vec3[] vertices, VertexAttributes attributes, int[] faces, int[] indices, bool[] onesided, bool convex = true)
+        {
+            this.vertices = vertices;
+            this.faces = faces;
+            this.nfaces = faces.Length;
+            this.vertexIndices = indices;
+            this.convex = convex;
+            this.attributes = attributes;
+            this.onesided= onesided;
+            int nTriangles = 0;
+            for (int i = 0; i < faces.Length; i++)
+            {
+                if(faces[i] > 2)
+                {
+                    nTriangles += (faces[i] - 2);
+                }
+            }
+            
+            triangles = new Triangle[nTriangles];
+            int start = 0;
+            int triIndex = 0;
+            for (int i = 0; i < nfaces; i++)
+            {
+                    for (int j = 0; (j + 2) < faces[i]; j++)
+                    { 
+                        int vi0 = vertexIndices[start]; int vi1 = vertexIndices[start + j + 1]; int vi2 = vertexIndices[start + j + 2];
+                        Vec3[] triangleVerts = {  vertices[vi0], vertices[vi1], vertices[vi2] };
+                        VertexAttributes atts = attributes;
+                        atts.colors = [attributes.colors[vi0], attributes.colors[vi1], attributes.colors[vi2]];
+                        atts.velocity = [attributes.velocity[vi0], attributes.velocity[vi1], attributes.velocity[vi2]];
+                        atts.acceleration = [attributes.acceleration[vi0], attributes.acceleration[vi1], attributes.acceleration[vi2]];
+                        atts.opacity = [attributes.opacity[vi0], attributes.opacity[vi1], attributes.opacity[vi2]];
+                        triangles[triIndex++] = new Triangle(triangleVerts, atts, onesided[i]);
+                    }
+                start += faces[i];
+            }
+        }
+        public override HitResult GetIntersectionPoint(Ray r)
+        {
+            HitResult closest = new HitResult { hit = false };
+            foreach (Triangle tri in triangles)
+            {
+                HitResult result = tri.GetIntersectionPoint(r);
+                if (result.hit && (!closest.hit || result.t < closest.t))
+                    closest = result;
+            }
+            return closest;
+            // onesided bug stems from the fact that some faces' vertices are defined in the wrong order -
+            // the order has to be clockwise according to the original coordinate system
+        }
+    }
 
     public class Ball : Object
     {
@@ -72,23 +116,23 @@ namespace Physics_Engine
 
         public Ball(Vec3 coords, VertexAttributes attributes, double radius)
         {
-            this.coordinates = new Vec3[1];
+            this.vertices = new Vec3[1];
             this.attributes = attributes;
-            this.coordinates[0].X = coords.X;
-            this.coordinates[0].Y = coords.Y;
-            this.coordinates[0].Z = coords.Z;
+            this.vertices[0].X = coords.X;
+            this.vertices[0].Y = coords.Y;
+            this.vertices[0].Z = coords.Z;
             this.radius = radius;
 
         }
 
-        public override HitResult getIntersectionPoint(Ray r)
+        public override HitResult GetIntersectionPoint(Ray r)
         {
 
-            Vec3 L = r.origin - this.coordinates[0];
+            Vec3 L = r.origin - this.vertices[0];
             Vec3 dir = r.direction;
             HitResult result = new HitResult();
             result.color = this.attributes.colors[0];
-            bool intersects = solveQuadratic(dir.dot(dir), 2 * L.dot(dir), L.dot(L) - Math.Pow(this.radius, 2), out double? t1, out double? t2);
+            bool intersects = Maths.SolveQuadratic(dir.Dot(dir), 2 * L.Dot(dir), L.Dot(L) - Math.Pow(this.radius, 2), out double? t1, out double? t2);
             if (!intersects)
             {
 
@@ -103,7 +147,7 @@ namespace Physics_Engine
                 {
 
                     result.point = r.origin + (double)t1 * dir;
-                    result.normal = (result.point - this.coordinates[0]).normalize();
+                    result.normal = (result.point - this.vertices[0]).Normalize();
                     result.t = (double) t1;
                     return result;
                 }
@@ -112,13 +156,13 @@ namespace Physics_Engine
                     if(t1< t2)
                     {
                         result.point = r.origin + (double)t1 * dir;
-                        result.normal = (result.point - this.coordinates[0]).normalize();
+                        result.normal = (result.point - this.vertices[0]).Normalize();
                         result.t = (double)t1;
                     }
                     else
                     {
                         result.point = r.origin + (double)t2 * dir;
-                        result.normal = (result.point - this.coordinates[0]).normalize();
+                        result.normal = (result.point - this.vertices[0]).Normalize();
                         result.t = (double)t2;
                     }
 
@@ -139,18 +183,18 @@ namespace Physics_Engine
 
         public Plane( VertexAttributes attributes, Vec3 normal, Vec3 p0)
         {
-            this.coordinates = new Vec3[1];
-            this.coordinates[0] = p0;
+            this.vertices = new Vec3[1];
+            this.vertices[0] = p0;
             this.attributes = attributes;
             this.normal = normal;
             this.p0 = p0;
         }
-        public override HitResult getIntersectionPoint(Ray r)
+        public override HitResult GetIntersectionPoint(Ray r)
         {
             HitResult result = new HitResult();
-            double denom = r.direction.dot(normal);
+            double denom = r.direction.Dot(normal);
             if (Math.Abs(denom) < 1e-6) { result.hit = false; return result; }
-            result.t = (p0 - r.origin).dot(normal) / denom;
+            result.t = (p0 - r.origin).Dot(normal) / denom;
             if (result.t < 0) { result.hit = false; return result; }
             result.normal = normal;
             result.hit = true;
@@ -170,20 +214,20 @@ namespace Physics_Engine
         public Disk(Vec3 center, VertexAttributes attributes, Vec3 normal, double radius)
         {
             this.attributes=attributes;
-            this.coordinates = new Vec3[1];
+            this.vertices = new Vec3[1];
             this.normal = normal;
             this.radius = radius;
             this.square_radius = Math.Pow(radius,2);
-            this.coordinates[0] = center;
-            p = new Plane(attributes, normal, this.coordinates[0]);
+            this.vertices[0] = center;
+            p = new Plane(attributes, normal, this.vertices[0]);
 
         }
-        public override HitResult getIntersectionPoint(Ray r)
+        public override HitResult GetIntersectionPoint(Ray r)
         {
             
 
-            HitResult result = p.getIntersectionPoint(r);
-            double denom = r.direction.dot(normal);
+            HitResult result = p.GetIntersectionPoint(r);
+            double denom = r.direction.Dot(normal);
             if (Math.Abs(denom) < 1e-6) { result.hit = false; return result; }
 
             if (!result.hit)
@@ -191,13 +235,13 @@ namespace Physics_Engine
                 return result;
             }
 
-            Vec3 v = result.point - this.coordinates[0];
-            double d2 = v.dot(v);
+            Vec3 v = result.point - this.vertices[0];
+            double d2 = v.Dot(v);
 
             if (d2 <= square_radius)
             {
 
-                result.t = (this.coordinates[0] - r.origin).dot(normal) / denom;
+                result.t = (this.vertices[0] - r.origin).Dot(normal) / denom;
                 if (result.t < 0) { result.hit = false; return result; }
                 result.normal = normal;
                 result.hit = true;
@@ -224,7 +268,7 @@ namespace Physics_Engine
         
         public Vec3[] velocity;
         public Vec3[] acceleration;
-        double[] opacity;
+        public double[] opacity;
     }
     public class Triangle : Object
     {
@@ -236,16 +280,16 @@ namespace Physics_Engine
         public Triangle(Vec3[] coords, VertexAttributes attributes, bool onesided = true)
         {
 
-            this.coordinates = new Vec3[3];
-            for (int i = 0; i < coordinates.Length; i++)
+            this.vertices = new Vec3[3];
+            for (int i = 0; i < vertices.Length; i++)
             {
-                coordinates[i].X = coords[i].X;
-                coordinates[i].Y = coords[i].Y;
-                coordinates[i].Z = coords[i].Z;
+                vertices[i].X = coords[i].X;
+                vertices[i].Y = coords[i].Y;
+                vertices[i].Z = coords[i].Z;
             }
-            this.area = (coordinates[2] - coordinates[0]).cross(coordinates[1] - coordinates[0]).magnitude();
-            this.normal = (coordinates[2] - coordinates[0]).cross(coordinates[1] - coordinates[0]).normalize();
-            this.p = new(attributes, normal, coordinates[0]);
+            this.area = (vertices[2] - vertices[0]).Cross(vertices[1] - vertices[0]).Magnitude();
+            this.normal = (vertices[2] - vertices[0]).Cross(vertices[1] - vertices[0]).Normalize();
+            this.p = new(attributes, normal, vertices[0]);
             this.onesided = onesided;
             this.attributes = attributes;
             
@@ -253,15 +297,15 @@ namespace Physics_Engine
 
         }
 
-        public override HitResult getIntersectionPoint(Ray r)
+        public override HitResult GetIntersectionPoint(Ray r)
         {
-            Vec3 tuv = cramersRule(r, this.coordinates);
+            Vec3 tuv = Maths.CramersRule(r, this.vertices);
             double w0 = 1 - tuv[1] - tuv[2];
             double w1 = tuv[1];
             double w2 = tuv[2];
             if (w0 < 0 || w1 < 0 || w2 < 0 || w0 > 1 || w1 > 1 || w2 > 1) { return new HitResult { hit = false }; }
 
-            if ((onesided && normal.dot(r.direction) > 0) || Math.Abs(normal.dot(r.direction)) < 1e-6 || tuv[0] < 0) return new HitResult { hit = false };
+            if ((onesided && normal.Dot(r.direction) > 0) || Math.Abs(normal.Dot(r.direction)) < 1e-6 || tuv[0] < 0) return new HitResult { hit = false };
             
             Vec3 point = r.origin + tuv[0] * r.direction;
             HitResult result = new HitResult
@@ -287,22 +331,7 @@ namespace Physics_Engine
 
 
         }
-        public static Vec3 cramersRule(Ray r, Vec3[] ABC)
-        {
-
-            Vec3 E1 = ABC[1] - ABC[0];
-            Vec3 E2 = ABC[2] - ABC[0];
-            Vec3 h = r.direction.cross(E2);
-            double det = E1.dot(h);
-            Vec3 s = r.origin - ABC[0];
-            double u = s.dot(h) / det;
-            Vec3 q = s.cross(E1);
-            double v = r.direction.dot(q) / det;
-            double t = E2.dot(q) / det;
-
-
-            return new Vec3(t, u, v);
-        }
+        
     }
 
 }

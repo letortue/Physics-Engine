@@ -11,7 +11,7 @@ namespace Physics_Engine
     public static class Globals
     {
         public static Camera Camera = new Camera();
-        public static int timeElapsed = 0;
+        public static int TimeElapsed = 0;
         
     }
 }

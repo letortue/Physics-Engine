@@ -17,20 +17,20 @@ namespace Physics_Engine
             string json = File.ReadAllText("config.json");
             config = JsonSerializer.Deserialize<Config>(json)!;
 
-            bitmap = new SKBitmap(config.image_res[0], config.image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
-            this.pixels = new byte[config.image_res[0] * config.image_res[1] * 4];
-            this.depths = new double[config.image_res[0] * config.image_res[1]];
+            bitmap = new SKBitmap(config.Image_res[0], config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
+            this.pixels = new byte[config.Image_res[0] * config.Image_res[1] * 4];
+            this.depths = new double[config.Image_res[0] * config.Image_res[1]];
             Array.Fill(depths, double.PositiveInfinity);
 
 
             this.objects = objects;
 
 
-            mapImage();
+            MapImage();
 
 
         }
-        public (Vec3 min, Vec3 max) getBoundingBox(Vec3[] vertices)
+        public (Vec3 min, Vec3 max) GetBoundingBox(Vec3[] vertices)
         {
 
             double MaxX = vertices[0].X;
@@ -52,32 +52,32 @@ namespace Physics_Engine
             Vec3 max = new Vec3(MaxX, MaxY, MaxZ);
             return (min, max);
         }
-        public void drawImage(SKCanvas canvas)
+        public void DrawImage(SKCanvas canvas)
         {
             System.Runtime.InteropServices.Marshal.Copy(pixels, 0, bitmap.GetPixels(), pixels.Length);
             canvas.DrawBitmap(bitmap, 0, 0);
         }
-        public void update(Object o, double pixelsPerMeter = 50)
+        public void Update(Object o, double pixelsPerMeter = 50)
         {
 
-            double t = (float)config.interval / 1000;
+            double t = (float)config.Interval / 1000;
 
-            for (int j = 0; j < o.coordinates.Length; j++)
+            for (int j = 0; j < o.vertices.Length; j++)
             {
                 
                 o.attributes.velocity[j].X += t * o.attributes.acceleration[j].X;
-                o.coordinates[j].X += t * o.attributes.velocity[j].X * pixelsPerMeter;
+                o.vertices[j].X += t * o.attributes.velocity[j].X * pixelsPerMeter;
                 o.attributes.velocity[j].Y += t * o.attributes.acceleration[j].Y;
-                o.coordinates[j].Y += t * o.attributes.velocity[j].Y * pixelsPerMeter;
+                o.vertices[j].Y += t * o.attributes.velocity[j].Y * pixelsPerMeter;
                 o.attributes.velocity[j].Z += t * o.attributes.acceleration[j].Z;
-                o.coordinates[j].Z += t * o.attributes.velocity[j].Z * pixelsPerMeter;
+                o.vertices[j].Z += t * o.attributes.velocity[j].Z * pixelsPerMeter;
                 
 
             }
         }
 
 
-        public bool isBehind(Vec3 vertex)
+        public bool IsBehind(Vec3 vertex)
         {
             return -vertex.Z < 0.1;
         }
@@ -85,7 +85,7 @@ namespace Physics_Engine
 
 
 
-        public void mapImage(bool IsAntiAlias = true)
+        public void MapImage(bool IsAntiAlias = true)
         {
             Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
             Array.Clear(pixels, 0, pixels.Length);
@@ -96,23 +96,23 @@ namespace Physics_Engine
                 Y = Globals.Camera.matrix[1, 3],
                 Z = Globals.Camera.matrix[2, 3],
             };
-            double ratio = (double)config.image_res[0] / (double)config.image_res[1];
-            double startX = (0.5 / config.image_res[0] * 2 - 1) * ratio;
-            double startY = 1 - (0.5 / config.image_res[1] * 2);
-            double stepX = (2.0 / config.image_res[0]) * ratio;
-            double stepY = -(2.0 / config.image_res[1]);
+            double ratio = (double)config.Image_res[0] / (double)config.Image_res[1];
+            double startX = (0.5 / config.Image_res[0] * 2 - 1) * ratio;
+            double startY = 1 - (0.5 / config.Image_res[1] * 2);
+            double stepX = (2.0 / config.Image_res[0]) * ratio;
+            double stepY = -(2.0 / config.Image_res[1]);
 
             // loop through each pixel in screen space
-            Parallel.For(0, config.image_res[1], j =>
+            Parallel.For(0, config.Image_res[1], j =>
             {
-                for (double i = 0; i < config.image_res[0]; i++)
+                for (double i = 0; i < config.Image_res[0]; i++)
                 {
                     double sx = startX + i * stepX;
                     double sy = startY + j * stepY;
 
                     Vec4 dir4 = new Vec4(sx, sy, -1, 0);
                     dir4 = Globals.Camera.matrix * dir4;
-                    dir4.normalize();
+                    dir4.Normalize();
                     Vec3 dir = new Vec3
                     {
                         X = dir4.X,
@@ -120,42 +120,8 @@ namespace Physics_Engine
                         Z = dir4.Z
                     };
                     Ray R = new Ray(camWorldPos, dir);
-                    foreach(Object o in objects)
-                    {
-                        HitResult result = o.getIntersectionPoint(R);
-                        int index = (int)((j * config.image_res[0] + i) * 4);
-                        Vec4 pointCam = inverse * new Vec4(result.point.X, result.point.Y, result.point.Z, 1);
-                        double depth = -pointCam.Z; 
-                        if (result.hit && result.t > 0 && result.t < config.clipping_range && depth <= depths[(int)(j * config.image_res[0] + i)])
-                        {
-                        
-                            if (o is Plane)
-                            {
-                                depths[(int)(j * config.image_res[0] + i)] = depth;
-                                pixels[index + 0] = 0;
-                                pixels[index + 1] = 255;
-                                pixels[index + 2] = 0;
-                                pixels[index + 3] = 255;
-                                
-                            }
-                            else
-                            {
-                                depths[(int)(j * config.image_res[0] + i)] = depth;
-                                pixels[index + 0] = (byte) result.color.Z;
-                                pixels[index + 1] = (byte) result.color.Y;
-                                pixels[index + 2] = (byte) result.color.X;
-                                pixels[index + 3] = 255;
-                                
-                            }
-                            
-                            
-                            
-                        }
-                        
 
-                        
-                    }
-                    
+                    MapObjects(inverse, R, i, j);
                 }
             });
 
@@ -283,15 +249,54 @@ namespace Physics_Engine
             //}
         }
 
-        public double edgeFunction(Vec3 a, Vec3 b, Vec3 c)
+        private void MapObjects(Matrix4 inverse, Ray R, double i, double j)
+        {
+            foreach (Object o in objects)
+            {
+                HitResult result = o.GetIntersectionPoint(R);
+                int index = (int)((j * config.Image_res[0] + i) * 4);
+                Vec4 pointCam = inverse * new Vec4(result.point.X, result.point.Y, result.point.Z, 1);
+                double depth = -pointCam.Z;
+                if (result.hit && result.t > 0 && result.t < config.Clipping_range && depth <= depths[(int)(j * config.Image_res[0] + i)])
+                {
+
+                    if (o is Plane)
+                    {
+                        depths[(int)(j * config.Image_res[0] + i)] = depth;
+                        pixels[index + 0] = 0;
+                        pixels[index + 1] = 255;
+                        pixels[index + 2] = 0;
+                        pixels[index + 3] = 255;
+
+                    }
+                    else
+                    {
+                        depths[(int)(j * config.Image_res[0] + i)] = depth;
+                        pixels[index + 0] = (byte)result.color.Z;
+                        pixels[index + 1] = (byte)result.color.Y;
+                        pixels[index + 2] = (byte)result.color.X;
+                        pixels[index + 3] = 255;
+
+                    }
+
+
+
+                }
+
+
+
+            }
+        }
+
+        public double EdgeFunction(Vec3 a, Vec3 b, Vec3 c)
         {
             return (c.Y - a.Y) * (b.X - a.X) - (c.X - a.X) * (b.Y - a.Y);
         }
         public (List<Vec3[]>, List<Vec3[]>) clipVertices(Vec3[] verts, Vec3[] colors)
         {
-            bool i0 = isBehind(verts[0]);
-            bool i1 = isBehind(verts[1]);
-            bool i2 = isBehind(verts[2]);
+            bool i0 = IsBehind(verts[0]);
+            bool i1 = IsBehind(verts[1]);
+            bool i2 = IsBehind(verts[2]);
             int count = (i0 ? 1 : 0) + (i1 ? 1 : 0) + (i2 ? 1 : 0);
             if (count == 3) return (new List<Vec3[]>(), new List<Vec3[]>());
 
@@ -354,20 +359,20 @@ namespace Physics_Engine
         }
 
 
-        public Vec3 projectVertex(Vec3 vertex)
+        public Vec3 ProjectVertex(Vec3 vertex)
         {
 
 
 
-            Matrix4 projectionM = Matrix4.projectionMatrix();
+            Matrix4 projectionM = Matrix4.ProjectionMatrix();
             double f = 1 / Math.Tan(config.FOV / 2 / 57.2958D);
 
 
 
             Vec4 projected = new Vec4(vertex.X, vertex.Y, vertex.Z, 1);
             projected = projectionM * projected;
-            double pRasterX = (projected.X + 1) / 2 * config.image_res[0];
-            double pRasterY = (1 - projected.Y) / 2 * config.image_res[1];
+            double pRasterX = (projected.X + 1) / 2 * config.Image_res[0];
+            double pRasterY = (1 - projected.Y) / 2 * config.Image_res[1];
             double pRasterZ = -vertex.Z;
 
             Vec3 v = new Vec3(pRasterX, pRasterY, pRasterZ);

@@ -41,12 +41,12 @@ namespace Physics_Engine
 
             InitializeComponent();
             
-            this.ClientSize = new Size(config.image_res[0], config.image_res[1]);
+            this.ClientSize = new Size(config.Image_res[0], config.Image_res[1]);
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
 
             skControl = new SKControl();
-            skControl.Size = new Size(config.image_res[0], config.image_res[1]);
+            skControl.Size = new Size(config.Image_res[0], config.Image_res[1]);
             skControl.Dock = DockStyle.Fill;
             skControl.PaintSurface += OnPaintSurface;
             skControl.MouseMove += OnMouseMove;
@@ -82,11 +82,7 @@ namespace Physics_Engine
             ];
 
             double[] opacity = { 255, 255, 255 };
-            Vec3[] colors = new Vec3[3];
             
-            colors[0] = new Vec3(168, 51, 155);
-            colors[1] = new Vec3(255, 255, 255);
-            colors[2] = new Vec3(100, 255, 0);
             Vec3[] colors2 = new Vec3[3];
             
             colors2[0] = new Vec3(255, 255, 255);
@@ -100,11 +96,87 @@ namespace Physics_Engine
                 colors = colors2
             };
 
+            Vec3[] vertices = {
+            // front face
+            new Vec3(-1, -1, -3),
+            new Vec3( 1, -1, -3),
+            new Vec3( 1,  1, -3),
+            new Vec3(-1,  1, -3),
+            // back face
+            new Vec3(-1, -1, -5),
+            new Vec3( 1, -1, -5),
+            new Vec3( 1,  1, -5),
+            new Vec3(-1,  1, -5),
+            // left face
+            new Vec3(-1, -1, -5),
+            new Vec3(-1, -1, -3),
+            new Vec3(-1,  1, -3),
+            new Vec3(-1,  1, -5),
+            // right face
+            new Vec3( 1, -1, -3),
+            new Vec3( 1, -1, -5),
+            new Vec3( 1,  1, -5),
+            new Vec3( 1,  1, -3),
+            // top face
+            new Vec3(-1,  1, -3),
+            new Vec3( 1,  1, -3),
+            new Vec3( 1,  1, -5),
+            new Vec3(-1,  1, -5),
+            // bottom face
+            new Vec3(-1, -1, -5),
+            new Vec3( 1, -1, -5),
+            new Vec3( 1, -1, -3),
+            new Vec3(-1, -1, -3),
+        };
+
+            int[] faces = { 4, 4, 4, 4, 4, 4 }; // 6 faces, 4 vertices each
+
+            int[] indices = {
+            0,  1,  2,  3,   // front
+            4,  5,  6,  7,   // back
+            8,  9,  10, 11,  // left
+            12, 13, 14, 15,  // right
+            16, 17, 18, 19,  // top
+            20, 21, 22, 23   // bottom
+        };
+
+            bool[] onesided = { false, false, false, false, false, false };
+
+            // simple colors per vertex - each face a different color
+            Vec3[] colors = {
+            new Vec3(255, 255, 0),   new Vec3(255, 0, 0),   new Vec3(255, 255, 0),   new Vec3(255, 0, 0),   // front red
+            new Vec3(0, 255, 0),   new Vec3(0, 255, 0),   new Vec3(0, 255, 0),   new Vec3(0, 255, 0),   // back green
+            new Vec3(0, 0, 255),   new Vec3(0, 0, 255),   new Vec3(0, 0, 255),   new Vec3(0, 0, 255),   // left blue
+            new Vec3(255, 255, 0), new Vec3(255, 255, 0), new Vec3(255, 255, 0), new Vec3(255, 255, 0), // right yellow
+            new Vec3(255, 0, 255), new Vec3(255, 0, 255), new Vec3(255, 0, 255), new Vec3(255, 0, 255), // top magenta
+            new Vec3(0, 255, 255), new Vec3(0, 255, 255), new Vec3(0, 255, 255), new Vec3(0, 255, 255), // bottom cyan
+        };
+
+            // fill remaining attributes with zeros
+            Vec3[] velocities = new Vec3[24];
+            Vec3[] accelerations = new Vec3[24];
+            double[] opacities = new double[24];
+            for (int i = 0; i < 24; i++)
+            {
+                velocities[i] = new Vec3(0, 0, 0);
+                accelerations[i] = new Vec3(0, 0, 0);
+                opacities[i] = 255;
+            }
+
+            VertexAttributes atts = new VertexAttributes
+            {
+                colors = colors,
+                velocity = velocities,
+                acceleration = accelerations,
+                opacity = opacities
+            };
+
+            Mesh cube = new Mesh(vertices, atts, faces, indices, onesided);
 
             Vec3 dir = new Vec3(0, -6, -5);
-            Vec3 normal = (new Vec3(0,1,0)).normalize();
+            Vec3 normal = (new Vec3(0,1,0)).Normalize();
             bool backCulling = false;
-            Object[] objects = {  new Ball(coords[0], attributes, 2), /*new Plane(attributes, normal, dir) , */ new Triangle(coords2, attributes, backCulling)};
+            Object[] objects = {  new Ball(coords[0], attributes, 2), /*new Plane(attributes, normal, dir) , */ new Triangle(coords2, attributes, backCulling), cube};
 
 
             image = new Image(objects);
@@ -113,23 +185,23 @@ namespace Physics_Engine
             
             Timer timer = new Timer();
             
-            timer.Interval = config.interval;
+            timer.Interval = config.Interval;
             timer.Tick += (s, e) =>
             {
 
-                if (KeyPressed[0]) Globals.Camera.move(new Vec3(0,0,-config.movement_speed));
-                if (KeyPressed[1]) Globals.Camera.move(new Vec3(-config.movement_speed, 0,0));
-                if (KeyPressed[2]) Globals.Camera.move(new Vec3(0,0,config.movement_speed));
-                if (KeyPressed[3]) Globals.Camera.move(new Vec3(config.movement_speed, 0,0));
-                if (KeyPressed[4]) Globals.Camera.move(new Vec3(0, -config.movement_speed, 0));
-                if (KeyPressed[5]) Globals.Camera.move(new Vec3(0, config.movement_speed, 0));
+                if (KeyPressed[0]) Globals.Camera.Move(new Vec3(0,0,-config.Movement_speed));
+                if (KeyPressed[1]) Globals.Camera.Move(new Vec3(-config.Movement_speed, 0,0));
+                if (KeyPressed[2]) Globals.Camera.Move(new Vec3(0,0,config.Movement_speed));
+                if (KeyPressed[3]) Globals.Camera.Move(new Vec3(config.Movement_speed, 0,0));
+                if (KeyPressed[4]) Globals.Camera.Move(new Vec3(0, -config.Movement_speed, 0));
+                if (KeyPressed[5]) Globals.Camera.Move(new Vec3(0, config.Movement_speed, 0));
 
-                foreach (Object o in objects) image.update(o); //
-                image.mapImage();
+                foreach (Object o in objects) image.Update(o); //
+                image.MapImage();
 
-                Globals.timeElapsed++;
+                Globals.TimeElapsed++;
                 
-                this.Text = $"{Globals.timeElapsed}, {Globals.timeElapsed / 60}";
+                this.Text = $"{Globals.TimeElapsed}, {Globals.TimeElapsed / 60}";
 
 
                 skControl.Invalidate();
@@ -143,7 +215,7 @@ namespace Physics_Engine
 
             canvas = e.Surface.Canvas;
             canvas.Clear(SKColors.Black);
-            image.drawImage(canvas);
+            image.DrawImage(canvas);
             
             
         }
@@ -169,8 +241,8 @@ namespace Physics_Engine
             //Console.WriteLine(dx);
             //Console.WriteLine(dy);
             
-            Globals.Camera.rotate(0,dy);
-            Globals.Camera.rotate(1,dx);
+            Globals.Camera.Rotate(0,dy);
+            Globals.Camera.Rotate(1,dx);
             
 
             Point center = new Point(this.Width / 2, this.Height / 2);

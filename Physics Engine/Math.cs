@@ -11,7 +11,41 @@ using System.Threading.Tasks;
 
 namespace Physics_Engine
 {
+    public static class Maths
+    {
+        public static Vec3 CramersRule(Ray r, Vec3[] ABC)
+        {
 
+            Vec3 E1 = ABC[1] - ABC[0];
+            Vec3 E2 = ABC[2] - ABC[0];
+            Vec3 h = r.direction.Cross(E2);
+            double det = E1.Dot(h);
+            Vec3 s = r.origin - ABC[0];
+            double u = s.Dot(h) / det;
+            Vec3 q = s.Cross(E1);
+            double v = r.direction.Dot(q) / det;
+            double t = E2.Dot(q) / det;
+
+
+            return new Vec3(t, u, v);
+        }
+        public static bool SolveQuadratic(double a, double b, double c, out double? t1, out double? t2)
+        {
+            double delta = Math.Pow(b, 2) - 4 * a * c;
+            if (delta < 0) { t1 = null; t2 = null; return false; }
+            if (delta > 0)
+            {
+                double sqdelta = Math.Sqrt(delta);
+                t1 = (-b - sqdelta) / (2 * a);
+                t2 = (-b + sqdelta) / (2 * a);
+                if (t1 > t2) { double? x = t2; t2 = t1; t1 = x; }
+                return true;
+            }
+            t1 = -b / (2 * a);
+            t2 = null;
+            return true;
+        }
+    }
     public struct Vec3
     {
         public double X { get; set; }
@@ -45,12 +79,12 @@ namespace Physics_Engine
             return $"{X} {Y} {Z}";
         }
 
-        public double dot(Vec3 v)
+        public double Dot(Vec3 v)
         {
             return this.X * v.X + this.Y * v.Y + this.Z * v.Z;
             
         }
-        public Vec3 cross(Vec3 v)
+        public Vec3 Cross(Vec3 v)
         {
             Vec3 result = new Vec3();
             result.X = this.Y * v.Z - this.Z * v.Y;
@@ -74,7 +108,7 @@ namespace Physics_Engine
 
         }
 
-        public Vec3 normalize()
+        public Vec3 Normalize()
         {
             double x = this.X;
             double y = this.Y;
@@ -88,7 +122,7 @@ namespace Physics_Engine
             return v;
         }
 
-        public double magnitude()
+        public double Magnitude()
         {
             return Math.Sqrt(Math.Pow(this.X, 2) + Math.Pow(this.Y, 2) + Math.Pow(this.Z, 2));
         }
@@ -153,12 +187,12 @@ namespace Physics_Engine
             return $"{X} {Y} {Z} {W}";
         }
 
-        public Vec4 dot(Vec4 v)
+        public Vec4 Dot(Vec4 v)
         {
             return new Vec4(this.X * v.X, this.Y * v.Y, this.Z * v.Z, this.W * v.W);
 
         }
-        public void normalize()
+        public void Normalize()
         {
             double magnitude = 1 / Math.Sqrt(Math.Pow(this.X, 2) + Math.Pow(this.Z, 2) + Math.Pow(this.Z, 2));
             this.X *= magnitude;
@@ -240,7 +274,7 @@ namespace Physics_Engine
 
 
         }
-        public double determinant()
+        public double Determinant()
         {
             Matrix3 m = this;
             return (m[0, 0] * (m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1]))
@@ -248,7 +282,7 @@ namespace Physics_Engine
                 + (m[2, 0] * (m[0, 1] * m[1, 2] - m[1, 1] * m[0, 2]));
         }
         
-        public Matrix3 transpose3()
+        public Matrix3 Transpose3()
         {
             Matrix3 m = new Matrix3();
             for (int i = 0; i < 3; i++)
@@ -262,7 +296,7 @@ namespace Physics_Engine
         }
 
 
-        public static Matrix3 rotationMatrix(int axis, double degrees)
+        public static Matrix3 RotationMatrix(int axis, double degrees)
         {
             Matrix3 m = new Matrix3();
             if (axis == 0)
@@ -373,7 +407,7 @@ namespace Physics_Engine
             
         
         }
-        public Matrix4 transpose4()
+        public Matrix4 Transpose4()
         {
             Matrix4 m = new();
             for (int i = 0; i < 4; i++)
@@ -385,7 +419,7 @@ namespace Physics_Engine
             }
             return m;
         }
-        public Matrix4 transpose3()
+        public Matrix4 Transpose3()
         {
             Matrix4 m = new Matrix4();
             for (int i = 0; i < 3; i++)
@@ -397,19 +431,19 @@ namespace Physics_Engine
             }
             return m;
         }
-        public static Matrix4 projectionMatrix()
+        public static Matrix4 ProjectionMatrix()
         {
             Matrix4 m = new Matrix4();
             m[3, 2] = -1;
             m[3, 3] = 0;
-            m[2, 2] = -config.clipping_range / (config.clipping_range - 1); 
-            m[2, 3] = -config.clipping_range / (config.clipping_range - 1);
+            m[2, 2] = -config.Clipping_range / (config.Clipping_range - 1); 
+            m[2, 3] = -config.Clipping_range / (config.Clipping_range - 1);
             double f = 1 / Math.Tan(config.FOV / 2 / 57.2958D);
             m[0, 0] = f;
             m[1, 1] = f;
             return m;
         }
-        public static Matrix4 rotationMatrix(int axis, double degrees)
+        public static Matrix4 RotationMatrix(int axis, double degrees)
         {
             Matrix4 m = new Matrix4();
             if(axis == 0)
@@ -439,7 +473,7 @@ namespace Physics_Engine
         }
         public Matrix4 InverseRotationPart()
         {
-            Matrix4 R_T = this.transpose3();
+            Matrix4 R_T = this.Transpose3();
             
             Vec3 t = new();
             t.X = this[0, 3];
@@ -491,7 +525,7 @@ namespace Physics_Engine
             return m;
         }
 
-        public static Vec4 movementMult(Matrix4 m, Vec4 v)
+        public static Vec4 MovementMult(Matrix4 m, Vec4 v)
         {
             Vec4 v1 = new Vec4(0, 0, 0, 1);
 
