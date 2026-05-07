@@ -60,41 +60,7 @@ namespace Physics_Engine
 
 
 
-
-            Vec3[] velo = [new Vec3(0, 0, 0), new Vec3(0, 0, 0), new Vec3(0, 0, 0)];
-            Vec3[] acc = [new Vec3(0.0, 0, 0), new Vec3(0.0, 0, 0), new Vec3(0.0, 0, 0)];
-            Vec3[] coords =
-            [
-                new Vec3(-1, -1, -10),
-                new Vec3(-1,  1, -10),
-                new Vec3(1, -1, -10)
-                
-
-
-            ];
-            Vec3[] coords2 =
-            [
-                new Vec3(-1, -1, -4),
-                new Vec3(-1,  1, -4),
-                new Vec3(1, -1, -4)
-
-
-            ];
-
-            double[] opacity = { 255, 255, 255 };
             
-            Vec3[] colors2 = new Vec3[3];
-            
-            colors2[0] = new Vec3(255, 255, 255);
-            colors2[1] = new Vec3(0, 255, 0);
-            colors2[2] = new Vec3(0, 0, 0);
-
-            VertexAttributes attributes = new VertexAttributes
-            {
-                velocity = velo,
-                acceleration = acc,
-                colors = colors2
-            };
 
             Vec3[] vertices = {
             // front face
@@ -155,13 +121,17 @@ namespace Physics_Engine
             // fill remaining attributes with zeros
             Vec3[] velocities = new Vec3[24];
             Vec3[] accelerations = new Vec3[24];
+            
+                
+            
             double[] opacities = new double[24];
             for (int i = 0; i < 24; i++)
             {
-                velocities[i] = new Vec3(0, 0, 0);
-                accelerations[i] = new Vec3(0, 0, 0);
+                velocities[i] = new Vec3(0, 0.01, 0);
+                accelerations[i] = new Vec3(0, 1, 0);
                 opacities[i] = 255;
             }
+
 
             VertexAttributes atts = new VertexAttributes
             {
@@ -173,10 +143,10 @@ namespace Physics_Engine
 
             Mesh cube = new Mesh(vertices, atts, faces, indices, onesided);
 
-            Vec3 dir = new Vec3(0, -6, -5);
-            Vec3 normal = (new Vec3(0,1,0)).Normalize();
-            bool backCulling = false;
-            Object[] objects = {  new Ball(coords[0], attributes, 2), /*new Plane(attributes, normal, dir) , */ new Triangle(coords2, attributes, backCulling), cube};
+       
+            
+            
+            Object[] objects = {  cube};
 
 
             image = new Image(objects);
@@ -200,7 +170,6 @@ namespace Physics_Engine
                 image.MapImage();
 
                 Globals.TimeElapsed++;
-                
                 this.Text = $"{Globals.TimeElapsed}, {Globals.TimeElapsed / 60}";
 
 

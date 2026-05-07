@@ -1,4 +1,5 @@
 ﻿using Accessibility;
+using Aspose.ThreeD;
 using OpenTK.Graphics.OpenGL;
 using SkiaSharp;
 using System;
@@ -10,6 +11,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Physics_Engine
 {
@@ -40,10 +42,7 @@ namespace Physics_Engine
     public abstract class Object
     {
         public Vec3[] vertices { get; set; }
-        public Vec3[] velocity { get; set; }
-        public Vec3[] acceleration { get; set; }
-        public Vec3[] color { get; set; }
-        public double[] opacity { get; set; }
+        
         public VertexAttributes attributes;
         
         public abstract HitResult GetIntersectionPoint(Ray r);
@@ -58,6 +57,8 @@ namespace Physics_Engine
         public bool convex { get; set; }
         public bool[] onesided { get; set; }
         public Triangle[] triangles { get; set; }
+        public int nTriangles { get; set; }
+        public double[,] tIndices { get; set; }
         public Mesh(Vec3[] vertices, VertexAttributes attributes, int[] faces, int[] indices, bool[] onesided, bool convex = true)
         {
             this.vertices = vertices;
@@ -67,16 +68,17 @@ namespace Physics_Engine
             this.convex = convex;
             this.attributes = attributes;
             this.onesided= onesided;
-            int nTriangles = 0;
+            this.nTriangles = 0;
             for (int i = 0; i < faces.Length; i++)
             {
                 if(faces[i] > 2)
                 {
-                    nTriangles += (faces[i] - 2);
+                    this.nTriangles += (faces[i] - 2);
                 }
             }
-            
-            triangles = new Triangle[nTriangles];
+            this.tIndices = new double[nTriangles,3];
+
+            triangles = new Triangle[this.nTriangles];
             int start = 0;
             int triIndex = 0;
             for (int i = 0; i < nfaces; i++)
@@ -90,11 +92,24 @@ namespace Physics_Engine
                         atts.velocity = [attributes.velocity[vi0], attributes.velocity[vi1], attributes.velocity[vi2]];
                         atts.acceleration = [attributes.acceleration[vi0], attributes.acceleration[vi1], attributes.acceleration[vi2]];
                         atts.opacity = [attributes.opacity[vi0], attributes.opacity[vi1], attributes.opacity[vi2]];
+                        tIndices[triIndex, 0] = vi0;
+                        tIndices[triIndex, 1] = vi1;
+                        tIndices[triIndex, 2] = vi2;
+                    
                         triangles[triIndex++] = new Triangle(triangleVerts, atts, onesided[i]);
+                        
                     }
                 start += faces[i];
             }
+            
         }
+        //public Mesh LoadMeshOBJ(string filename)
+        //{
+            
+            
+        //    ObjImporter objImporter = new ObjImporter();
+        //    Holder.ModelMesh = objImporter.ImportFile("./file.obj");
+        //}
         public override HitResult GetIntersectionPoint(Ray r)
         {
             HitResult closest = new HitResult { hit = false };

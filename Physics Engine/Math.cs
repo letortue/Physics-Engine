@@ -218,7 +218,7 @@ namespace Physics_Engine
 
 
     }
-    public class Matrix3
+    public struct Matrix3
     {
         public double[,] data;
         private static Config config { get; set; }

@@ -10,7 +10,7 @@ namespace Physics_Engine
         public Object[] objects;
         public byte[] pixels;
         public double[] depths;
-        SKBitmap bitmap;
+        readonly SKBitmap bitmap;
         Config config { get; set; }
         public Image(Object[] objects)
         {
@@ -61,9 +61,9 @@ namespace Physics_Engine
         {
 
             double t = (float)config.Interval / 1000;
-
             for (int j = 0; j < o.vertices.Length; j++)
             {
+                
                 
                 o.attributes.velocity[j].X += t * o.attributes.acceleration[j].X;
                 o.vertices[j].X += t * o.attributes.velocity[j].X * pixelsPerMeter;
@@ -74,10 +74,23 @@ namespace Physics_Engine
                 
 
             }
+            if (o is Mesh)
+            {
+                Mesh mesh = (Mesh)o;
+                for (int j = 0;j < mesh.nTriangles; j++)
+                {
+                    mesh.triangles[j].vertices[0] = mesh.vertices[(int)mesh.tIndices[j,0]];
+                    mesh.triangles[j].vertices[1] = mesh.vertices[(int)mesh.tIndices[j,1]];
+                    mesh.triangles[j].vertices[2] = mesh.vertices[(int)mesh.tIndices[j,2]];
+                }
+            }
+            
+
+
         }
 
 
-        public bool IsBehind(Vec3 vertex)
+        public static bool IsBehind(Vec3 vertex)
         {
             return -vertex.Z < 0.1;
         }
@@ -87,6 +100,51 @@ namespace Physics_Engine
 
         public void MapImage(bool IsAntiAlias = true)
         {
+            //Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
+            //Array.Clear(pixels, 0, pixels.Length);
+            //Array.Fill(depths, double.PositiveInfinity);
+            //Vec3 camWorldPos = new Vec3
+            //{
+            //    X = Globals.Camera.matrix[0, 3],
+            //    Y = Globals.Camera.matrix[1, 3],
+            //    Z = Globals.Camera.matrix[2, 3],
+            //};
+            //double ratio = (double)config.Image_res[0] / (double)config.Image_res[1];
+            //double startX = (0.5 / config.Image_res[0] * 2 - 1) * ratio;
+            //double startY = 1 - (0.5 / config.Image_res[1] * 2);
+            //double stepX = (2.0 / config.Image_res[0]) * ratio;
+            //double stepY = -(2.0 / config.Image_res[1]);
+            //Vec4 dir4 = new Vec4(startX, startY, -1, 0);
+            //dir4 = Globals.Camera.matrix * dir4;
+            //dir4.Normalize();
+            //Vec3 dir = new Vec3
+            //{
+            //    X = dir4.X,
+            //    Y = dir4.Y,
+            //    Z = dir4.Z
+            //};
+            //Ray R = new Ray(camWorldPos, dir);
+            //// loop through each pixel in screen space
+
+            //Parallel.For(0, config.Image_res[1], j =>
+            //{
+            //    for (double i = 0; i < config.Image_res[0]; i++)
+            //    {
+            //        double sx = startX + i * stepX;
+            //        double sy = startY + j * stepY;
+
+            //        dir4.X = sx; dir4.Y = sy; dir4.Z = -1; dir4.W = 0;
+            //        dir4 = Globals.Camera.matrix * dir4;
+            //        dir4.Normalize();
+            //        dir.X = dir4.X; dir.Y = dir4.Y; dir.Z = dir4.Z;
+
+            //        R.direction = dir;
+
+            //        MapObjects(inverse, R, i, j);
+            //    }
+            //});
+
+
             Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
             Array.Clear(pixels, 0, pixels.Length);
             Array.Fill(depths, double.PositiveInfinity);
@@ -96,6 +154,7 @@ namespace Physics_Engine
                 Y = Globals.Camera.matrix[1, 3],
                 Z = Globals.Camera.matrix[2, 3],
             };
+            
             double ratio = (double)config.Image_res[0] / (double)config.Image_res[1];
             double startX = (0.5 / config.Image_res[0] * 2 - 1) * ratio;
             double startY = 1 - (0.5 / config.Image_res[1] * 2);
@@ -103,6 +162,7 @@ namespace Physics_Engine
             double stepY = -(2.0 / config.Image_res[1]);
 
             // loop through each pixel in screen space
+
             Parallel.For(0, config.Image_res[1], j =>
             {
                 for (double i = 0; i < config.Image_res[0]; i++)
@@ -116,14 +176,21 @@ namespace Physics_Engine
                     Vec3 dir = new Vec3
                     {
                         X = dir4.X,
-                        Y = dir4.Y, 
+                        Y = dir4.Y,
                         Z = dir4.Z
                     };
                     Ray R = new Ray(camWorldPos, dir);
 
-                    MapObjects(inverse, R, i, j);
+                    MapObjects( R, i, j);
                 }
             });
+
+
+
+
+
+
+
 
 
             //for (int i = 0; i < 4; i++)
@@ -249,14 +316,14 @@ namespace Physics_Engine
             //}
         }
 
-        private void MapObjects(Matrix4 inverse, Ray R, double i, double j)
+        private void MapObjects( Ray R, double i, double j)
         {
             foreach (Object o in objects)
             {
                 HitResult result = o.GetIntersectionPoint(R);
                 int index = (int)((j * config.Image_res[0] + i) * 4);
-                Vec4 pointCam = inverse * new Vec4(result.point.X, result.point.Y, result.point.Z, 1);
-                double depth = -pointCam.Z;
+                
+                double depth = -result.t;
                 if (result.hit && result.t > 0 && result.t < config.Clipping_range && depth <= depths[(int)(j * config.Image_res[0] + i)])
                 {
 
@@ -288,11 +355,11 @@ namespace Physics_Engine
             }
         }
 
-        public double EdgeFunction(Vec3 a, Vec3 b, Vec3 c)
+        public static double EdgeFunction(Vec3 a, Vec3 b, Vec3 c)
         {
             return (c.Y - a.Y) * (b.X - a.X) - (c.X - a.X) * (b.Y - a.Y);
         }
-        public (List<Vec3[]>, List<Vec3[]>) clipVertices(Vec3[] verts, Vec3[] colors)
+        public static (List<Vec3[]>, List<Vec3[]>) clipVertices(Vec3[] verts, Vec3[] colors)
         {
             bool i0 = IsBehind(verts[0]);
             bool i1 = IsBehind(verts[1]);
