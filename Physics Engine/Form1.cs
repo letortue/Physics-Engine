@@ -1,11 +1,13 @@
 namespace Physics_Engine
 {
     using Accessibility;
+    using Aspose.ThreeD.Entities;
     using OpenTK.Graphics.OpenGL;
     using SkiaSharp;
     using SkiaSharp.Views.Desktop;
     using System.Collections.Generic;
     using System.Drawing.Text;
+    using System.Linq.Expressions;
     using System.Runtime.InteropServices.Marshalling;
     using System.Security.Policy;
     using System.Text.Json;
@@ -26,21 +28,21 @@ namespace Physics_Engine
 
         public Form1()
         {
-            
+
 
 
             //
             KeyPressed = new bool[6];
             for (int i = 0; i < 4; i++) KeyPressed[i] = false;
-            
 
-            
+
+
             string json = File.ReadAllText("config.json");
             config = JsonSerializer.Deserialize<Config>(json)!;
 
 
             InitializeComponent();
-            
+
             this.ClientSize = new Size(config.Image_res[0], config.Image_res[1]);
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -60,42 +62,45 @@ namespace Physics_Engine
 
 
 
-            
+
 
             Vec3[] vertices = {
             // front face
             new Vec3(-1, -1, -3),
-            new Vec3( 1, -1, -3),
-            new Vec3( 1,  1, -3),
             new Vec3(-1,  1, -3),
+            new Vec3( 1,  1, -3),
+            new Vec3( 1, -1, -3),
             // back face
-            new Vec3(-1, -1, -5),
             new Vec3( 1, -1, -5),
             new Vec3( 1,  1, -5),
             new Vec3(-1,  1, -5),
+            new Vec3(-1, -1, -5),
             // left face
             new Vec3(-1, -1, -5),
-            new Vec3(-1, -1, -3),
-            new Vec3(-1,  1, -3),
             new Vec3(-1,  1, -5),
+            new Vec3(-1,  1, -3),
+            new Vec3(-1, -1, -3),
             // right face
             new Vec3( 1, -1, -3),
-            new Vec3( 1, -1, -5),
-            new Vec3( 1,  1, -5),
             new Vec3( 1,  1, -3),
+            new Vec3( 1,  1, -5),
+            new Vec3( 1, -1, -5),
             // top face
             new Vec3(-1,  1, -3),
-            new Vec3( 1,  1, -3),
-            new Vec3( 1,  1, -5),
             new Vec3(-1,  1, -5),
+            new Vec3( 1,  1, -5),
+            new Vec3( 1,  1, -3),
             // bottom face
             new Vec3(-1, -1, -5),
-            new Vec3( 1, -1, -5),
-            new Vec3( 1, -1, -3),
             new Vec3(-1, -1, -3),
+            new Vec3( 1, -1, -3),
+            new Vec3( 1, -1, -5),
+            
+            
         };
 
             int[] faces = { 4, 4, 4, 4, 4, 4 }; // 6 faces, 4 vertices each
+            bool[] ratio = {false, false, false, false, false, false};
 
             int[] indices = {
             0,  1,  2,  3,   // front
@@ -121,35 +126,67 @@ namespace Physics_Engine
             // fill remaining attributes with zeros
             Vec3[] velocities = new Vec3[24];
             Vec3[] accelerations = new Vec3[24];
-            
-                
-            
+
+
+
             double[] opacities = new double[24];
             for (int i = 0; i < 24; i++)
             {
                 velocities[i] = new Vec3(0, 0.01, 0);
-                accelerations[i] = new Vec3(0, 1, 0);
+                accelerations[i] = new Vec3(0, 0.1, 0);
                 opacities[i] = 255;
             }
 
+            Vec3[] albedoShading =
+            [
+                new Vec3(1, 0, 0),
+                new Vec3(0, 1, 0),
+                new Vec3(0, 0, 1),
+                new Vec3(1, 1, 0),
+                new Vec3(1, 0, 1),
+                new Vec3(0, 1, 1)
+            ];
 
+            Vec3[] albedo = new Vec3[24];
+            for (int i = 0; i < 24; i++)
+            {
+                albedo[i] = colors[i] / 255;
+            }
             VertexAttributes atts = new VertexAttributes
             {
                 colors = colors,
                 velocity = velocities,
                 acceleration = accelerations,
-                opacity = opacities
+                opacity = opacities,
+                albedo = albedo
+
+            };
+            ShadingAttributes shading = new ShadingAttributes
+            {
+                facing_ratio = ratio,
+                albedo = albedoShading,
+                interpolatedAlbedo = false
+
             };
 
-            Mesh cube = new Mesh(vertices, atts, faces, indices, onesided);
+            Mesh cube = new Mesh(vertices, atts, shading, faces, indices, onesided);
 
-       
-            
-            
-            Object[] objects = {  cube};
+            Vec3[] c = { new Vec3(255, 255, 255), new Vec3(255, 255, 255), new Vec3(255, 255, 255) };
+            Vec3[] v = { new Vec3(0, 0, 0), new Vec3(0, 0, 0), new Vec3(0, 0, 0) };
+            Vec3[] a = { new Vec3(0, 0, 0), new Vec3(0, 0, 0), new Vec3(0, 0, 0) };
+            double[] o = new double[24];
+            VertexAttributes at = new VertexAttributes
+            {
+                colors = c,
+                velocity = v,
+                acceleration = a,
+                opacity = o
+            };
+            Light[] lights = { /*new DistantLight(new Vec3(255, 0, 0), 3, new Vec3(0, 0, -1))  ,  new DistantLight(new Vec3(0, 255, 0), 3, new Vec3(0, 0, -1)) ,*/ new PointLight(new Vec3(0,0,-20), new Vec3(255,255,255), 100)};
+            Object[] objects = {  new Ball(new Vec3(0,0,-10), at, new ShadingAttributes { facing_ratio = [false] , albedo = [new Vec3(1,1,1)], interpolatedAlbedo = false }, 5) , new Ball(new Vec3(0, 0, -30), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], interpolatedAlbedo = false }, 5) /*, cube */ };
 
 
-            image = new Image(objects);
+            image = new Image(objects, lights);
 
             //
             

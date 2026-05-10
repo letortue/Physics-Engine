@@ -21,10 +21,12 @@ namespace Physics_Engine
         public Vec3 point;
         public Vec3 normal;
         public Vec3 color;
+        public Vec3 albedo;
         public double t;
         public double w0;
         public double w1;
         public double w2;
+        public Object o;
         
     }
     public struct Ray
@@ -39,12 +41,61 @@ namespace Physics_Engine
 
         }
     }
+    public abstract class Light
+    {
+        public Vec3 color { get; set; }
+        protected double intensity;
+        public abstract Vec3 GetDirection(Vec3 hitPoint);
+        public abstract double GetIntensity(Vec3 hitPoint);
+    }
+
+    public class PointLight : Light
+    {
+        Vec3 pos { get; set; }
+        public PointLight(Vec3 pos, Vec3 color, double intensity)
+        {
+            this.pos = pos;
+            this.color = color;
+            this.intensity = intensity;
+            
+        }
+        public override Vec3  GetDirection(Vec3 hitPoint)
+        {
+            return (hitPoint - pos).Normalize();
+        }
+        public override double GetIntensity(Vec3 hitPoint)
+        {
+            double distance = (pos - hitPoint).Magnitude();
+            return intensity / (distance * distance);
+        }
+    }
+    public class DistantLight : Light
+    {
+        Vec3 direction;
+        public DistantLight( Vec3 color, double intensity, Vec3 direction)
+        {
+            this.color = color;
+            this.intensity = intensity;
+            this.direction = direction;
+        }
+        public override Vec3 GetDirection(Vec3 hitPoint)
+        {
+            Vec3 dir = direction.Normalize();
+            return direction.Normalize();
+        }
+        public override double GetIntensity(Vec3 hitPoint)
+        {
+            
+            return intensity;
+        }
+
+    }
     public abstract class Object
     {
         public Vec3[] vertices { get; set; }
         
         public VertexAttributes attributes;
-        
+        public ShadingAttributes shading;
         public abstract HitResult GetIntersectionPoint(Ray r);
     }
 
@@ -59,7 +110,7 @@ namespace Physics_Engine
         public Triangle[] triangles { get; set; }
         public int nTriangles { get; set; }
         public double[,] tIndices { get; set; }
-        public Mesh(Vec3[] vertices, VertexAttributes attributes, int[] faces, int[] indices, bool[] onesided, bool convex = true)
+        public Mesh(Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, int[] faces, int[] indices, bool[] onesided, bool convex = true)
         {
             this.vertices = vertices;
             this.faces = faces;
@@ -68,6 +119,7 @@ namespace Physics_Engine
             this.convex = convex;
             this.attributes = attributes;
             this.onesided= onesided;
+            this.shading = shading;
             this.nTriangles = 0;
             for (int i = 0; i < faces.Length; i++)
             {
@@ -87,29 +139,35 @@ namespace Physics_Engine
                     { 
                         int vi0 = vertexIndices[start]; int vi1 = vertexIndices[start + j + 1]; int vi2 = vertexIndices[start + j + 2];
                         Vec3[] triangleVerts = {  vertices[vi0], vertices[vi1], vertices[vi2] };
-                        VertexAttributes atts = attributes;
-                        atts.colors = [attributes.colors[vi0], attributes.colors[vi1], attributes.colors[vi2]];
-                        atts.velocity = [attributes.velocity[vi0], attributes.velocity[vi1], attributes.velocity[vi2]];
-                        atts.acceleration = [attributes.acceleration[vi0], attributes.acceleration[vi1], attributes.acceleration[vi2]];
-                        atts.opacity = [attributes.opacity[vi0], attributes.opacity[vi1], attributes.opacity[vi2]];
+                        VertexAttributes atts = TVAtts(attributes, vi0, vi1, vi2);
+                        ShadingAttributes sh = TShAtts(shading, i);
                         tIndices[triIndex, 0] = vi0;
                         tIndices[triIndex, 1] = vi1;
                         tIndices[triIndex, 2] = vi2;
-                    
-                        triangles[triIndex++] = new Triangle(triangleVerts, atts, onesided[i]);
+                        triangles[triIndex++] = new Triangle(triangleVerts, atts,sh, onesided[i]);
                         
                     }
                 start += faces[i];
             }
             
         }
-        //public Mesh LoadMeshOBJ(string filename)
-        //{
+        public VertexAttributes TVAtts(VertexAttributes attributes, int vi0, int vi1, int vi2)
+        {
+            VertexAttributes atts = attributes;
+            atts.colors = [attributes.colors[vi0], attributes.colors[vi1], attributes.colors[vi2]];
+            atts.velocity = [attributes.velocity[vi0], attributes.velocity[vi1], attributes.velocity[vi2]];
+            atts.acceleration = [attributes.acceleration[vi0], attributes.acceleration[vi1], attributes.acceleration[vi2]];
+            atts.opacity = [attributes.opacity[vi0], attributes.opacity[vi1], attributes.opacity[vi2]];
+            atts.albedo = [attributes.albedo[vi0], attributes.albedo[vi1], attributes.albedo[vi2]];
+            return atts;
+        }
+        public ShadingAttributes TShAtts(ShadingAttributes attributes, int i)
+        {
+            attributes.facing_ratio = [attributes.facing_ratio[i]];
+            attributes.albedo = [attributes.albedo[i]];
             
-            
-        //    ObjImporter objImporter = new ObjImporter();
-        //    Holder.ModelMesh = objImporter.ImportFile("./file.obj");
-        //}
+            return attributes;
+        }
         public override HitResult GetIntersectionPoint(Ray r)
         {
             HitResult closest = new HitResult { hit = false };
@@ -129,7 +187,7 @@ namespace Physics_Engine
     {
         public double radius { get; set; }
 
-        public Ball(Vec3 coords, VertexAttributes attributes, double radius)
+        public Ball(Vec3 coords, VertexAttributes attributes, ShadingAttributes shading, double radius)
         {
             this.vertices = new Vec3[1];
             this.attributes = attributes;
@@ -137,6 +195,7 @@ namespace Physics_Engine
             this.vertices[0].Y = coords.Y;
             this.vertices[0].Z = coords.Z;
             this.radius = radius;
+            this.shading = shading;
 
         }
 
@@ -147,6 +206,7 @@ namespace Physics_Engine
             Vec3 dir = r.direction;
             HitResult result = new HitResult();
             result.color = this.attributes.colors[0];
+            result.albedo = this.shading.albedo[0];
             bool intersects = Maths.SolveQuadratic(dir.Dot(dir), 2 * L.Dot(dir), L.Dot(L) - Math.Pow(this.radius, 2), out double? t1, out double? t2);
             if (!intersects)
             {
@@ -280,19 +340,27 @@ namespace Physics_Engine
     public struct VertexAttributes
     {
         public Vec3[] colors;
-        
+        public Vec3[] albedo;
         public Vec3[] velocity;
         public Vec3[] acceleration;
         public double[] opacity;
     }
+    public struct ShadingAttributes
+    {
+        public bool interpolatedAlbedo;
+        public Vec3[] albedo;
+        public bool[] facing_ratio;
+    }
     public class Triangle : Object
     {
         public Vec3 normal;
-        private Plane p;
-        private bool onesided;
+        
+        public bool onesided;
         private double area;
         
-        public Triangle(Vec3[] coords, VertexAttributes attributes, bool onesided = true)
+        
+        
+        public Triangle(Vec3[] coords, VertexAttributes attributes, ShadingAttributes shading, bool onesided = false)
         {
 
             this.vertices = new Vec3[3];
@@ -304,9 +372,10 @@ namespace Physics_Engine
             }
             this.area = (vertices[2] - vertices[0]).Cross(vertices[1] - vertices[0]).Magnitude();
             this.normal = (vertices[2] - vertices[0]).Cross(vertices[1] - vertices[0]).Normalize();
-            this.p = new(attributes, normal, vertices[0]);
+            
             this.onesided = onesided;
             this.attributes = attributes;
+            this.shading = shading;
             
                 
 
@@ -338,8 +407,21 @@ namespace Physics_Engine
             double G = attributes.colors[0].Y * w0 + attributes.colors[1].Y * w1 + attributes.colors[2].Y * w2;
             double B = attributes.colors[0].Z * w0 + attributes.colors[1].Z * w1 + attributes.colors[2].Z * w2;
             result.color.X = R; result.color.Y = G; result.color.Z = B;
+            if (shading.interpolatedAlbedo)
+            {
+                double albedoR = attributes.albedo[0].X * w0 + attributes.albedo[1].X * w1 + attributes.albedo[2].X * w2;
+                double albedoG = attributes.albedo[0].Y * w0 + attributes.albedo[1].Y * w1 + attributes.albedo[2].Y * w2;
+                double albedoB = attributes.albedo[0].Z * w0 + attributes.albedo[1].Z * w1 + attributes.albedo[2].Z * w2;
+                result.albedo.X = albedoR;
+                result.albedo.Y = albedoG;
+                result.albedo.Z = albedoB;
+            }
+            else
+                result.albedo = shading.albedo[0];
 
-            return result;
+
+
+                return result;
 
             
 

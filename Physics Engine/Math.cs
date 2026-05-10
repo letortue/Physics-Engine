@@ -20,6 +20,7 @@ namespace Physics_Engine
             Vec3 E2 = ABC[2] - ABC[0];
             Vec3 h = r.direction.Cross(E2);
             double det = E1.Dot(h);
+            if (Math.Abs(det) < 1e-6) return new Vec3(-1, 0, 0); // miss
             Vec3 s = r.origin - ABC[0];
             double u = s.Dot(h) / det;
             Vec3 q = s.Cross(E1);
@@ -129,24 +130,34 @@ namespace Physics_Engine
 
         public static Vec3 operator +(Vec3 lhs, Vec3 rhs)
         {
-            return new Vec3(lhs.X + rhs.X, lhs.Y + rhs.Y, lhs.Z + rhs.Z);
+            lhs.X += rhs.X; lhs.Y += rhs.Y; lhs.Z += rhs.Z;
+            return lhs;
         }
         public static Vec3 operator /(Vec3 lhs, Vec3 rhs)
         {
-            return new Vec3(lhs.X / rhs.X, lhs.Y / rhs.Y, lhs.Z / rhs.Z);
+            lhs.X /= rhs.X; lhs.Y /= rhs.Y; lhs.Z /= rhs.Z;
+            return lhs;
         }
         public static Vec3 operator /(Vec3 lhs, double d)
         {
-            return new Vec3(lhs.X / d, lhs.Y / d, lhs.Z / d);
+            lhs.X /= d; lhs.Y /= d; lhs.Z /= d;
+            return lhs;
         }
         public static Vec3 operator -(Vec3 lhs, Vec3 rhs)
         {
-            return new Vec3(lhs.X - rhs.X, lhs.Y - rhs.Y, lhs.Z - rhs.Z);
+            lhs.X -= rhs.X; lhs.Y -= rhs.Y; lhs.Z -= rhs.Z;
+            return lhs;
+        }
+        public static Vec3 operator *(Vec3 lhs, Vec3 rhs)
+        {
+            lhs.X *= rhs.X; lhs.Y *= rhs.Y; lhs.Z *= rhs.Z;
+            return lhs;
         }
 
         public static Vec3 operator *(double a, Vec3 rhs)
         {
-            return new Vec3(a * rhs.X, a * rhs.Y, a * rhs.Z);
+            rhs.X *= a; rhs.Y *= a; rhs.Z *= a;
+            return rhs;
         }
 
         

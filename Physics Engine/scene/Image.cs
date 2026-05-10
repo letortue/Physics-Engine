@@ -1,4 +1,7 @@
 ﻿using SkiaSharp;
+using System;
+using System.Data;
+using System.DirectoryServices;
 using System.DirectoryServices.ActiveDirectory;
 using System.Text.Json;
 using static System.Windows.Forms.Design.AxImporter;
@@ -8,11 +11,13 @@ namespace Physics_Engine
     public class Image
     {
         public Object[] objects;
+        public Light[] lights;
         public byte[] pixels;
         public double[] depths;
         readonly SKBitmap bitmap;
         Config config { get; set; }
-        public Image(Object[] objects)
+        Matrix4 ObjectToWorldMatrix { get; set; }
+        public Image(Object[] objects, Light[] lights)
         {
             string json = File.ReadAllText("config.json");
             config = JsonSerializer.Deserialize<Config>(json)!;
@@ -24,8 +29,9 @@ namespace Physics_Engine
 
 
             this.objects = objects;
+            this.lights = lights;
 
-
+            ObjectToWorldMatrix = new Matrix4();
             MapImage();
 
 
@@ -71,7 +77,12 @@ namespace Physics_Engine
                 o.vertices[j].Y += t * o.attributes.velocity[j].Y * pixelsPerMeter;
                 o.attributes.velocity[j].Z += t * o.attributes.acceleration[j].Z;
                 o.vertices[j].Z += t * o.attributes.velocity[j].Z * pixelsPerMeter;
-                
+                //ObjectToWorldMatrix[0, 3] += t * o.attributes.velocity[j].X * pixelsPerMeter;
+                //ObjectToWorldMatrix[1, 3] += t * o.attributes.velocity[j].Y * pixelsPerMeter;
+                //ObjectToWorldMatrix[2, 3] += t * o.attributes.velocity[j].Z * pixelsPerMeter;
+                //Vec4 trans = ObjectToWorldMatrix * new Vec4(o.vertices[j].X, o.vertices[j].Y, o.vertices[j].Z, 1);
+                //o.vertices[j].X = trans.X; o.vertices[j].Y = trans.Y; o.vertices[j].Z = trans.Z;
+
 
             }
             if (o is Mesh)
@@ -100,50 +111,6 @@ namespace Physics_Engine
 
         public void MapImage(bool IsAntiAlias = true)
         {
-            //Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
-            //Array.Clear(pixels, 0, pixels.Length);
-            //Array.Fill(depths, double.PositiveInfinity);
-            //Vec3 camWorldPos = new Vec3
-            //{
-            //    X = Globals.Camera.matrix[0, 3],
-            //    Y = Globals.Camera.matrix[1, 3],
-            //    Z = Globals.Camera.matrix[2, 3],
-            //};
-            //double ratio = (double)config.Image_res[0] / (double)config.Image_res[1];
-            //double startX = (0.5 / config.Image_res[0] * 2 - 1) * ratio;
-            //double startY = 1 - (0.5 / config.Image_res[1] * 2);
-            //double stepX = (2.0 / config.Image_res[0]) * ratio;
-            //double stepY = -(2.0 / config.Image_res[1]);
-            //Vec4 dir4 = new Vec4(startX, startY, -1, 0);
-            //dir4 = Globals.Camera.matrix * dir4;
-            //dir4.Normalize();
-            //Vec3 dir = new Vec3
-            //{
-            //    X = dir4.X,
-            //    Y = dir4.Y,
-            //    Z = dir4.Z
-            //};
-            //Ray R = new Ray(camWorldPos, dir);
-            //// loop through each pixel in screen space
-
-            //Parallel.For(0, config.Image_res[1], j =>
-            //{
-            //    for (double i = 0; i < config.Image_res[0]; i++)
-            //    {
-            //        double sx = startX + i * stepX;
-            //        double sy = startY + j * stepY;
-
-            //        dir4.X = sx; dir4.Y = sy; dir4.Z = -1; dir4.W = 0;
-            //        dir4 = Globals.Camera.matrix * dir4;
-            //        dir4.Normalize();
-            //        dir.X = dir4.X; dir.Y = dir4.Y; dir.Z = dir4.Z;
-
-            //        R.direction = dir;
-
-            //        MapObjects(inverse, R, i, j);
-            //    }
-            //});
-
 
             Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
             Array.Clear(pixels, 0, pixels.Length);
@@ -185,175 +152,144 @@ namespace Physics_Engine
                 }
             });
 
-
-
-
-
-
-
-
-
-            //for (int i = 0; i < 4; i++)
-            //{
-            //    for (int j= 0; j < 4; j++)
-            //    {
-            //        Console.Write(Globals.Camera.matrix[i, j]);
-            //    }
-            //    Console.WriteLine();
-            //}
-
-
-
-
-
-
-
-            //Array.Clear(pixels, 0, pixels.Length);
-            //Array.Fill(depths, double.PositiveInfinity);
-            //Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
-            //foreach (Object obj in objects)
-            //{
-            //    if (obj is Triangle)
-            //    {
-            //        Vec3[] vertsproj = new Vec3[obj.coordinates.Length];
-            //        Vec3[] colorss = new Vec3[obj.coordinates.Length];
-
-            //        for (int i = 0; i < obj.coordinates.Length; i++)
-            //        {
-            //            Vec4 v = new Vec4(obj.coordinates[i].X, obj.coordinates[i].Y, obj.coordinates[i].Z, 1);
-            //            v = inverse * v;
-            //            vertsproj[i] = new Vec3(v.X, v.Y, v.Z);
-            //            colorss[i] = obj.color[i];
-            //        }
-            //        List<Vec3[]> vertsClipped;
-            //        List<Vec3[]> colorsClipped;
-            //        (vertsClipped, colorsClipped) = clipVertices(vertsproj, colorss);
-            //        for (int k = 0; k < vertsClipped.Count; k++)
-            //        {
-            //            Vec3[] vertices = new Vec3[]
-            //            {
-            //                projectVertex(vertsClipped[k][0]),
-            //                projectVertex(vertsClipped[k][1]),
-            //                projectVertex(vertsClipped[k][2])
-            //            };
-
-            //            (Vec3 min, Vec3 max) = getBoundingBox(vertices);
-
-            //            int minX = Math.Max(0, (int)Math.Floor(min.X));
-            //            int minY = Math.Max(0, (int)Math.Floor(min.Y));
-            //            int maxX = Math.Min(config.image_res[0] - 1, (int)Math.Ceiling(max.X));
-            //            int maxY = Math.Min(config.image_res[1] - 1, (int)Math.Ceiling(max.Y));
-
-
-            //            bool behind = vertices.All(v => v.Z <= 0);
-
-            //            bool offScreen = maxX < 0 || minX > config.image_res[0] - 1 ||
-            //            maxY < 0 || minY > config.image_res[1] - 1;
-            //            bool tooFar = vertices.All(v => v.Z > config.clipping_range);
-
-            //            if (!offScreen && !tooFar && !behind)
-            //            {
-
-
-            //                double area = edgeFunction(vertices[0], vertices[1], vertices[2]);
-            //                bool backFacing = area < 0;
-            //                Vec3 c0 = colorsClipped[k][0];
-            //                Vec3 c1 = colorsClipped[k][1];
-            //                Vec3 c2 = colorsClipped[k][2];
-            //                for (int i = minX; i <= maxX; i++)
-            //                {
-            //                    for (int j = minY; j <= maxY; j++)
-            //                    {
-
-
-            //                        Vec3 p = new Vec3(i + 0.5, j + 0.5, 0);
-            //                        double w0 = edgeFunction(vertices[1], vertices[2], p);
-            //                        double w1 = edgeFunction(vertices[2], vertices[0], p);
-            //                        double w2 = edgeFunction(vertices[0], vertices[1], p);
-            //                        double areab = area;
-            //                        if (backFacing) { w0 = -w0; w1 = -w1; w2 = -w2; areab = -area; }
-
-            //                        if (w0 >= 0 && w1 >= 0 && w2 >= 0)
-            //                        {
-
-            //                            double[] opacity = obj.opacity;
-
-            //                            w0 /= areab;
-            //                            w1 /= areab;
-            //                            w2 /= areab;
-
-            //                            double oneOverZ = w0 / vertices[0].Z + w1 / vertices[1].Z + w2 / vertices[2].Z;
-            //                            double r = (w0 * c0.X / vertices[0].Z + w1 * c1.X / vertices[1].Z + w2 * c2.X / vertices[2].Z) / oneOverZ;
-            //                            double g = (w0 * c0.Y / vertices[0].Z + w1 * c1.Y / vertices[1].Z + w2 * c2.Y / vertices[2].Z) / oneOverZ;
-            //                            double b = (w0 * c0.Z / vertices[0].Z + w1 * c1.Z / vertices[1].Z + w2 * c2.Z / vertices[2].Z) / oneOverZ;
-            //                            double o = (w0 * opacity[0] / vertices[0].Z + w1 * opacity[1] / vertices[1].Z + w2 * opacity[2] / vertices[2].Z) / oneOverZ;
-
-            //                            double z = 1.0 / oneOverZ;
-            //                            //if (z < 0) z = -z;
-
-            //                            if (z <= depths[j * config.image_res[0] + i])
-            //                            {
-            //                                depths[j * config.image_res[0] + i] = z;
-            //                                int index = (j * config.image_res[0] + i) * 4;
-            //                                pixels[index + 0] = (byte)(b * o / 255);
-            //                                pixels[index + 1] = (byte)(g * o / 255);
-            //                                pixels[index + 2] = (byte)(r * o / 255);
-            //                                pixels[index + 3] = (byte)(o);
-            //                            }
-
-
-
-
-            //                        }
-
-            //                    }
-            //                }
-
-
-            //            }
-            //        }
-            //    }
-            //}
+ 
         }
 
         private void MapObjects( Ray R, double i, double j)
         {
+            
+            Vec3 minusDir = new Vec3(0 - R.direction.X, 0 - R.direction.Y, 0 - R.direction.Z);
+            minusDir = minusDir.Normalize();
             foreach (Object o in objects)
             {
+                if (o is Mesh) { HandleMesh((Mesh)o, R, i, j); continue; };
                 HitResult result = o.GetIntersectionPoint(R);
                 int index = (int)((j * config.Image_res[0] + i) * 4);
+                double depth = result.t;
+
+
+                if (!result.hit || result.t <= 0 || result.t > config.Clipping_range || depth > depths[(int)(j * config.Image_res[0] + i)]) { continue; }
                 
-                double depth = -result.t;
-                if (result.hit && result.t > 0 && result.t < config.Clipping_range && depth <= depths[(int)(j * config.Image_res[0] + i)])
+                depths[(int)(j * config.Image_res[0] + i)] = depth;
+                    
+                    
+                if (o.shading.facing_ratio[0])
                 {
+                    double minus = minusDir.Dot(result.normal);
 
-                    if (o is Plane)
+                    double facingIntesity;
+                    facingIntesity = Math.Max(minus, 0);
+
+                    pixels[index + 0] = (byte)(facingIntesity * result.color.Z);
+                    pixels[index + 1] = (byte)(facingIntesity * result.color.Y);
+                    pixels[index + 2] = (byte)(facingIntesity * result.color.X);
+                }
+                else
+                {
+                    Vec3 albedo;
+                    if (o.shading.interpolatedAlbedo)
                     {
-                        depths[(int)(j * config.Image_res[0] + i)] = depth;
-                        pixels[index + 0] = 0;
-                        pixels[index + 1] = 255;
-                        pixels[index + 2] = 0;
-                        pixels[index + 3] = 255;
-
+                        albedo = result.albedo;
                     }
                     else
                     {
-                        depths[(int)(j * config.Image_res[0] + i)] = depth;
-                        pixels[index + 0] = (byte)result.color.Z;
-                        pixels[index + 1] = (byte)result.color.Y;
-                        pixels[index + 2] = (byte)result.color.X;
-                        pixels[index + 3] = 255;
-
+                        albedo = o.shading.albedo[0];
                     }
-
-
-
+                    Vec3 color = GetSurfaceColor(result, this.lights, albedo);
+                    byte colorX = (byte) Math.Clamp(color.X, 0, 255);
+                    byte colorY = (byte) Math.Clamp(color.Y, 0, 255);
+                    byte colorZ = (byte) Math.Clamp(color.Z, 0, 255);
+                    pixels[index + 0] = (byte)(colorZ);
+                    pixels[index + 1] = (byte)(colorY);
+                    pixels[index + 2] = (byte)(colorX);
+                    pixels[index + 3] = 255;
                 }
+
+
+
+
+
+                
 
 
 
             }
         }
+        public void HandleMesh(Mesh mesh, Ray R, double i, double j)
+        {
+            Vec3 minusDir = new Vec3(0 - R.direction.X, 0 - R.direction.Y, 0 - R.direction.Z);
+            minusDir = minusDir.Normalize();
+            int index = (int)((j * config.Image_res[0] + i) * 4);
+            foreach (Triangle t in mesh.triangles)
+            {
+                HitResult result = t.GetIntersectionPoint(R);
+                double depth = result.t;
+
+
+                if (!result.hit || result.t <= 0 || result.t > config.Clipping_range || depth > depths[(int)(j * config.Image_res[0] + i)]) { continue; }
+                
+                depths[(int)(j * config.Image_res[0] + i)] = depth;
+
+                
+                if (t.shading.facing_ratio[0])
+                {
+                    double minus = minusDir.Dot(result.normal);
+                    double facingIntesity;
+                    if (!t.onesided) facingIntesity = Math.Max(Math.Abs(minus), 0);
+                    else facingIntesity = Math.Max(minus, 0);
+
+                    pixels[index + 0] = (byte)(facingIntesity * result.color.Z);
+                    pixels[index + 1] = (byte)(facingIntesity * result.color.Y);
+                    pixels[index + 2] = (byte)(facingIntesity * result.color.X);
+                    pixels[index + 3] = 255;
+                }
+                else
+                {
+                    Vec3 albedo;
+                    if(t.shading.interpolatedAlbedo)
+                    {
+                       albedo = result.albedo; 
+                    }
+                    else
+                    {
+                        albedo = t.shading.albedo[0];
+                    }
+                    Vec3 color = GetSurfaceColor(result, this.lights, albedo);
+                    byte colorX = (byte)Math.Clamp(color.X, 0, 255);
+                    byte colorY = (byte)Math.Clamp(color.Y, 0, 255);
+                    byte colorZ = (byte)Math.Clamp(color.Z, 0, 255);
+                    pixels[index + 0] = (byte)(colorZ);
+                    pixels[index + 1] = (byte)(colorY);
+                    pixels[index + 2] = (byte)(colorX);
+                    pixels[index + 3] = 255;
+                }
+
+
+
+
+
+                
+            }
+        }
+        public Vec3 GetSurfaceColor(HitResult hit, Light[] lights, Vec3 albedoo)
+        {
+            Vec3 albedo = albedoo / Math.PI;
+            Vec3 contributions = new Vec3(0, 0, 0);
+            foreach (Light light in lights)
+            {
+                Vec3 dir = light.GetDirection(hit.point);
+                Vec3 minusDir = new Vec3(0 - dir.X, 0 - dir.Y, 0 - dir.Z);
+
+                contributions += Math.Max(minusDir.Dot(hit.normal), 0) * light.GetIntensity(hit.point) * light.color;
+
+            }
+           
+
+            return albedo * contributions;
+
+        }
+                  
+        
 
         public static double EdgeFunction(Vec3 a, Vec3 b, Vec3 c)
         {
