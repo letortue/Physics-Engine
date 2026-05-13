@@ -133,6 +133,16 @@ namespace Physics_Engine
             lhs.X += rhs.X; lhs.Y += rhs.Y; lhs.Z += rhs.Z;
             return lhs;
         }
+        public static Vec3 operator +(double lhs, Vec3 rhs)
+        {
+            rhs.X += lhs; rhs.Y += lhs; rhs.Z += lhs;
+            return rhs;
+        }
+        public static Vec3 operator +(Vec3 lhs, double rhs)
+        {
+            lhs.X += rhs; lhs.Y += rhs; lhs.Z += rhs;
+            return lhs;
+        }
         public static Vec3 operator /(Vec3 lhs, Vec3 rhs)
         {
             lhs.X /= rhs.X; lhs.Y /= rhs.Y; lhs.Z /= rhs.Z;

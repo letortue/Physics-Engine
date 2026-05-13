@@ -165,7 +165,8 @@ namespace Physics_Engine
             {
                 facing_ratio = ratio,
                 albedo = albedoShading,
-                interpolatedAlbedo = false
+                isInterpolatedAlbedo = false,
+                isReflective = true
 
             };
 
@@ -182,8 +183,13 @@ namespace Physics_Engine
                 acceleration = a,
                 opacity = o
             };
-            Light[] lights = { /*new DistantLight(new Vec3(255, 0, 0), 3, new Vec3(0, 0, -1))  ,  new DistantLight(new Vec3(0, 255, 0), 3, new Vec3(0, 0, -1)) ,*/ new PointLight(new Vec3(0,0,-20), new Vec3(255,255,255), 100)};
-            Object[] objects = {  new Ball(new Vec3(0,0,-10), at, new ShadingAttributes { facing_ratio = [false] , albedo = [new Vec3(1,1,1)], interpolatedAlbedo = false }, 5) , new Ball(new Vec3(0, 0, -30), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], interpolatedAlbedo = false }, 5) /*, cube */ };
+            Light[] lights = { new DistantLight(new Vec3(255, 0, 0), 3, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 05, new Vec3(01, -0.1, -0.5)) , new PointLight(new Vec3(0,0,-20), new Vec3(255,255,255), 10000)};
+            Ball ball1 = new Ball(new Vec3(0, 0, -10), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = true }, 5);
+            Ball ball2 = new Ball(new Vec3(0, 0, -30), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 0, 0)], isInterpolatedAlbedo = false, isReflective = false }, 5);
+            Plane plane = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false }, new Vec3(0,1,0), new Vec3(0,-20,0));
+            Disk disk = new Disk(new Vec3(-15,5,0), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false }, new Vec3(0,1,1), 10);
+            Object[] objects = { ball1 , ball2 , plane
+            };
 
 
             image = new Image(objects, lights);

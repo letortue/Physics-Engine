@@ -15,6 +15,8 @@ namespace Physics_Engine
         public double Clipping_range { get; set; }
         public double FOV { get; set; }
         public double Movement_speed { get; set; }
+        public double[] BackgroundColor { get; set; }
+        
         
     }
 }

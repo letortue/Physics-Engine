@@ -29,6 +29,22 @@ namespace Physics_Engine
         public Object o;
         
     }
+    public struct VertexAttributes
+    {
+        public Vec3[] colors;
+        public Vec3[] albedo;
+        public Vec3[] velocity;
+        public Vec3[] acceleration;
+        public double[] opacity;
+    }
+    public struct ShadingAttributes
+    {
+        public bool isInterpolatedAlbedo;
+        public Vec3[] albedo;
+        public bool[] facing_ratio;
+        public bool isReflective;
+        public bool isRefractive;
+    }
     public struct Ray
     {
         public Vec3 origin { get; set; } 
@@ -51,7 +67,7 @@ namespace Physics_Engine
 
     public class PointLight : Light
     {
-        Vec3 pos { get; set; }
+        public Vec3 pos { get; set; }
         public PointLight(Vec3 pos, Vec3 color, double intensity)
         {
             this.pos = pos;
@@ -66,7 +82,7 @@ namespace Physics_Engine
         public override double GetIntensity(Vec3 hitPoint)
         {
             double distance = (pos - hitPoint).Magnitude();
-            return intensity / (distance * distance);
+            return intensity / (distance * distance * 4 * Math.PI);
         }
     }
     public class DistantLight : Light
@@ -151,7 +167,7 @@ namespace Physics_Engine
             }
             
         }
-        public VertexAttributes TVAtts(VertexAttributes attributes, int vi0, int vi1, int vi2)
+        public static VertexAttributes TVAtts(VertexAttributes attributes, int vi0, int vi1, int vi2)
         {
             VertexAttributes atts = attributes;
             atts.colors = [attributes.colors[vi0], attributes.colors[vi1], attributes.colors[vi2]];
@@ -161,7 +177,7 @@ namespace Physics_Engine
             atts.albedo = [attributes.albedo[vi0], attributes.albedo[vi1], attributes.albedo[vi2]];
             return atts;
         }
-        public ShadingAttributes TShAtts(ShadingAttributes attributes, int i)
+        public static ShadingAttributes TShAtts(ShadingAttributes attributes, int i)
         {
             attributes.facing_ratio = [attributes.facing_ratio[i]];
             attributes.albedo = [attributes.albedo[i]];
@@ -207,6 +223,7 @@ namespace Physics_Engine
             HitResult result = new HitResult();
             result.color = this.attributes.colors[0];
             result.albedo = this.shading.albedo[0];
+            result.o = this;
             bool intersects = Maths.SolveQuadratic(dir.Dot(dir), 2 * L.Dot(dir), L.Dot(L) - Math.Pow(this.radius, 2), out double? t1, out double? t2);
             if (!intersects)
             {
@@ -256,13 +273,14 @@ namespace Physics_Engine
         public Vec3 normal { get; set; }
         public Vec3 p0 { get; set; }
 
-        public Plane( VertexAttributes attributes, Vec3 normal, Vec3 p0)
+        public Plane( VertexAttributes attributes, ShadingAttributes shading, Vec3 normal, Vec3 p0)
         {
             this.vertices = new Vec3[1];
             this.vertices[0] = p0;
             this.attributes = attributes;
             this.normal = normal;
             this.p0 = p0;
+            this.shading = shading;
         }
         public override HitResult GetIntersectionPoint(Ray r)
         {
@@ -272,9 +290,11 @@ namespace Physics_Engine
             result.t = (p0 - r.origin).Dot(normal) / denom;
             if (result.t < 0) { result.hit = false; return result; }
             result.normal = normal;
+            result.o = this;
             result.hit = true;
             result.point = r.origin + (result.t * r.direction);
             result.color = this.attributes.colors[0];
+            result.albedo = this.shading.albedo[0];
             return result;
             
         }
@@ -286,15 +306,16 @@ namespace Physics_Engine
         public double square_radius { get; set; }
         private Plane p;
 
-        public Disk(Vec3 center, VertexAttributes attributes, Vec3 normal, double radius)
+        public Disk(Vec3 center, VertexAttributes attributes,ShadingAttributes shading, Vec3 normal, double radius)
         {
-            this.attributes=attributes;
+            this.attributes= attributes;
             this.vertices = new Vec3[1];
             this.normal = normal;
             this.radius = radius;
             this.square_radius = Math.Pow(radius,2);
             this.vertices[0] = center;
-            p = new Plane(attributes, normal, this.vertices[0]);
+            this.shading = shading;
+            p = new Plane(attributes, shading, normal, this.vertices[0]);
 
         }
         public override HitResult GetIntersectionPoint(Ray r)
@@ -304,7 +325,10 @@ namespace Physics_Engine
             HitResult result = p.GetIntersectionPoint(r);
             double denom = r.direction.Dot(normal);
             if (Math.Abs(denom) < 1e-6) { result.hit = false; return result; }
-
+            result.albedo = this.shading.albedo[0];
+            result.color = this.attributes.colors[0];
+            result.normal = normal;
+            result.o = this;
             if (!result.hit)
             {
                 return result;
@@ -315,7 +339,7 @@ namespace Physics_Engine
 
             if (d2 <= square_radius)
             {
-
+                
                 result.t = (this.vertices[0] - r.origin).Dot(normal) / denom;
                 if (result.t < 0) { result.hit = false; return result; }
                 result.normal = normal;
@@ -337,20 +361,7 @@ namespace Physics_Engine
 
         }
     }
-    public struct VertexAttributes
-    {
-        public Vec3[] colors;
-        public Vec3[] albedo;
-        public Vec3[] velocity;
-        public Vec3[] acceleration;
-        public double[] opacity;
-    }
-    public struct ShadingAttributes
-    {
-        public bool interpolatedAlbedo;
-        public Vec3[] albedo;
-        public bool[] facing_ratio;
-    }
+    
     public class Triangle : Object
     {
         public Vec3 normal;
@@ -400,14 +411,15 @@ namespace Physics_Engine
                 t = tuv[0],
                 w0 = w0,
                 w1 = w1,
-                w2 = w2
+                w2 = w2,
+                o = this
             };
             
             double R = attributes.colors[0].X * w0 + attributes.colors[1].X * w1 + attributes.colors[2].X * w2;
             double G = attributes.colors[0].Y * w0 + attributes.colors[1].Y * w1 + attributes.colors[2].Y * w2;
             double B = attributes.colors[0].Z * w0 + attributes.colors[1].Z * w1 + attributes.colors[2].Z * w2;
             result.color.X = R; result.color.Y = G; result.color.Z = B;
-            if (shading.interpolatedAlbedo)
+            if (shading.isInterpolatedAlbedo)
             {
                 double albedoR = attributes.albedo[0].X * w0 + attributes.albedo[1].X * w1 + attributes.albedo[2].X * w2;
                 double albedoG = attributes.albedo[0].Y * w0 + attributes.albedo[1].Y * w1 + attributes.albedo[2].Y * w2;
