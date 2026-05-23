@@ -42,8 +42,10 @@ namespace Physics_Engine
         public bool isInterpolatedAlbedo;
         public Vec3[] albedo;
         public bool[] facing_ratio;
+        public bool oneSided;
         public bool isReflective;
         public bool isRefractive;
+        public double refIndex;
     }
     public struct Ray
     {
@@ -271,15 +273,15 @@ namespace Physics_Engine
     public class Plane : Object
     {
         public Vec3 normal { get; set; }
-        public Vec3 p0 { get; set; }
+        public Vec3 point { get; set; }
 
-        public Plane( VertexAttributes attributes, ShadingAttributes shading, Vec3 normal, Vec3 p0)
+        public Plane( VertexAttributes attributes, ShadingAttributes shading, Vec3 normal, Vec3 point)
         {
             this.vertices = new Vec3[1];
-            this.vertices[0] = p0;
+            this.vertices[0] = point;
             this.attributes = attributes;
             this.normal = normal;
-            this.p0 = p0;
+            this.point = point;
             this.shading = shading;
         }
         public override HitResult GetIntersectionPoint(Ray r)
@@ -287,7 +289,7 @@ namespace Physics_Engine
             HitResult result = new HitResult();
             double denom = r.direction.Dot(normal);
             if (Math.Abs(denom) < 1e-6) { result.hit = false; return result; }
-            result.t = (p0 - r.origin).Dot(normal) / denom;
+            result.t = (point - r.origin).Dot(normal) / denom;
             if (result.t < 0) { result.hit = false; return result; }
             result.normal = normal;
             result.o = this;
@@ -295,6 +297,7 @@ namespace Physics_Engine
             result.point = r.origin + (result.t * r.direction);
             result.color = this.attributes.colors[0];
             result.albedo = this.shading.albedo[0];
+            
             return result;
             
         }

@@ -20,9 +20,8 @@ namespace Physics_Engine
         
         private SKControl skControl;
         private bool[] KeyPressed;
-        readonly Object[] objects;
- 
-        public SKCanvas canvas;
+        readonly public Object[] objects;
+        public  SKCanvas canvas;
         Image image;
 
 
@@ -184,12 +183,12 @@ namespace Physics_Engine
                 opacity = o
             };
             Light[] lights = { new DistantLight(new Vec3(255, 0, 0), 3, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 05, new Vec3(01, -0.1, -0.5)) , new PointLight(new Vec3(0,0,-20), new Vec3(255,255,255), 10000)};
-            Ball ball1 = new Ball(new Vec3(0, 0, -10), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = true }, 5);
+            Ball ball1 = new Ball(new Vec3(0, 0, -10), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, isRefractive = true, refIndex = 1.3}, 5);
             Ball ball2 = new Ball(new Vec3(0, 0, -30), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 0, 0)], isInterpolatedAlbedo = false, isReflective = false }, 5);
-            Plane plane = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false }, new Vec3(0,1,0), new Vec3(0,-20,0));
+            Plane plane1 = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false }, new Vec3(0,1,0), new Vec3(0,-20,0));
+            Plane plane2 = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = true, oneSided = false }, new Vec3(1,0,0), new Vec3(-40,0,0));
             Disk disk = new Disk(new Vec3(-15,5,0), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false }, new Vec3(0,1,1), 10);
-            Object[] objects = { ball1 , ball2 , plane
-            };
+            Object[] objects = { ball1 , ball2 , plane1};
 
 
             image = new Image(objects, lights);

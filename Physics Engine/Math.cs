@@ -138,6 +138,7 @@ namespace Physics_Engine
             rhs.X += lhs; rhs.Y += lhs; rhs.Z += lhs;
             return rhs;
         }
+
         public static Vec3 operator +(Vec3 lhs, double rhs)
         {
             lhs.X += rhs; lhs.Y += rhs; lhs.Z += rhs;
@@ -157,6 +158,11 @@ namespace Physics_Engine
         {
             lhs.X -= rhs.X; lhs.Y -= rhs.Y; lhs.Z -= rhs.Z;
             return lhs;
+        }
+        public static Vec3 operator -(double lhs, Vec3 rhs)
+        {
+            rhs.X = lhs - rhs.X ; rhs.Y = lhs - rhs.Y; rhs.Z = lhs - rhs.Z;
+            return rhs;
         }
         public static Vec3 operator *(Vec3 lhs, Vec3 rhs)
         {
@@ -215,7 +221,7 @@ namespace Physics_Engine
         }
         public void Normalize()
         {
-            double magnitude = 1 / Math.Sqrt(Math.Pow(this.X, 2) + Math.Pow(this.Z, 2) + Math.Pow(this.Z, 2));
+            double magnitude = 1 / Math.Sqrt(Math.Pow(this.X, 2) + Math.Pow(this.Y, 2) + Math.Pow(this.Z, 2));
             this.X *= magnitude;
             this.Y *= magnitude;
             this.Z *= magnitude;

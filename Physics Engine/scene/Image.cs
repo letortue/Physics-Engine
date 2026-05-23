@@ -1,13 +1,10 @@
-﻿using Aspose.ThreeD.Entities;
+﻿
 using SkiaSharp;
-using System;
-using System.Data;
-using System.DirectoryServices;
-using System.DirectoryServices.ActiveDirectory;
-using System.Security.AccessControl;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
-using static System.Windows.Forms.Design.AxImporter;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
+using static System.Windows.Forms.DataFormats;
+
 
 namespace Physics_Engine
 {
@@ -19,7 +16,7 @@ namespace Physics_Engine
         public double[] depths;
         readonly SKBitmap bitmap;
         Config config { get; set; }
-        Vec3 backgroundColor { get; set; }
+         Vec3 backgroundColor { get; set; }
         Matrix4 ObjectToWorldMatrix { get; set; }
         public Image(Object[] objects, Light[] lights)
         {
@@ -165,49 +162,153 @@ namespace Physics_Engine
             Vec3 minusDir = new Vec3(0 - R.direction.X, 0 - R.direction.Y, 0 - R.direction.Z);
             minusDir = minusDir.Normalize();
 
-            Vec3 color = CastRay(R, this.objects, 0, out HitResult result);
+            Vec3 color = CastRay(R, this.objects, 0, out HitResult result, i ,j);
             
             ColorPixel(index, color, minusDir, result, result.o);
             
             
 
         }
-        public bool IsVisible(HitResult result, double depth, double i, double j)
-        {
-            if (!result.hit || result.t <= 0 || result.t > config.Clipping_range || depth > depths[(int)(j * config.Image_res[0] + i)]) return false;
-            return true;
-        }
+        
 
-        private Vec3 CastRay(Ray R, Object[] objects, int depthRecursion, out HitResult hit)
+        private Vec3 CastRay(Ray R, Object[] objects, int depthRecursion, out HitResult hit, double i,double j)
         {
             hit = new HitResult();
+            if (99 == Globals.TimeElapsed % 100 && i == config.Image_res[0] / 2 && j == config.Image_res[1] / 2)
+            {
+                double mag = Math.Sqrt(R.direction.X * R.direction.X + R.direction.Y * R.direction.Y + R.direction.Z * R.direction.Z);
+                if (mag > 1.01 || mag < 0.99)
+                {
+                    Console.WriteLine($"UNNORMALIZED RAY depth:{depthRecursion} mag:{mag} dir:{R.direction}");
+                }
+            }
             if (depthRecursion > 3) return backgroundColor;
 
             HitResult result = FindClosestHit(R, objects);
             hit = result;
+            
             if (!result.hit) return backgroundColor;
             
 
             if (result.o.shading.isReflective)
-            {
-
-                Ray reflectionRay = new Ray
-                {
-                    direction = R.direction - (2 * (result.normal.Dot(R.direction)) * result.normal),
-                    origin = result.point + (1e-06 * result.normal)
-                };
-                Vec3 reflectedColor = CastRay(reflectionRay, this.objects, depthRecursion + 1, out HitResult h);
+            { 
+                Vec3 reflectedColor = Reflect(result, R, depthRecursion + 1, i, j);
+  
                 return result.o.shading.albedo[0] * reflectedColor;
 
             }
+            if(result.o.shading.isRefractive)
+            {
+                if(result.normal.Dot(R.direction) > 0)
+    {
+                    result.normal = 0 - result.normal;
+                }
+                double cosTheta = Math.Abs(result.normal.Dot(0 - R.direction));
+                double kr = Schlick(cosTheta, result.o.shading.refIndex);
+                Ray refractionRay = RefractRay(R, result);
+                
+               
+                refractionRay.direction = refractionRay.direction.Normalize();
+                Vec3 refractedColor = CastRay(refractionRay, this.objects, depthRecursion + 1, out HitResult h, i, j);
+                Vec3 reflectedColor = Reflect(result, R, depthRecursion, i, j);
+                Vec3 finalColor = (kr *  reflectedColor) +  ((1 - kr) * refractedColor);
+                if( 99 == Globals.TimeElapsed % 100 && i == config.Image_res[0] / 2 && j == config.Image_res[1] / 2)
+                {
+                    Console.WriteLine($"normal: {result.normal}, rayDir: {R.direction}, cosTheta: {cosTheta}, kr: {kr}");
+                }
+                
+                return result.o.shading.albedo[0] * finalColor;
 
+            }
             return GetSurfaceColor(result.o, result, this.lights, result.o.shading.albedo[0]);
 
 
         }
+        private static Ray RefractRay(Ray R, HitResult result)
+        {
+            Ray refractionRay = new Ray();
+            
+            double n = 1.0 / result.o.shading.refIndex;
+            double c1 = result.normal.Dot(0-R.direction);
+            double c2 = Math.Sqrt(1 - (Math.Pow(n, 2) * (1 - Math.Pow(c1, 2))));
+            refractionRay.direction = (n * R.direction + (((n * c1) - c2) * result.normal)).Normalize();
+           
+            if (result.o is Ball ball)
+            {
+                double exitT = FindExitT(ball.vertices[0], result.point, refractionRay.direction, ball.radius);
+                if (exitT < 0)
+                {
+                    refractionRay.direction = (R.direction - (2 * (result.normal.Dot(R.direction)) * result.normal)).Normalize();
+                    refractionRay.origin = result.point + 1e-6 * result.normal;
+                    return refractionRay;
+                }
+                Vec3 exitPoint = result.point + exitT * refractionRay.direction;
+                Vec3 exitNormal = 0-(exitPoint - ball.vertices[0]).Normalize();
 
+                
+                double n2 = result.o.shading.refIndex / 1.0; 
+                double c1exit = exitNormal.Dot(0-refractionRay.direction);
+                double c2exit = Math.Sqrt(1 - (Math.Pow(n2, 2) * (1 - Math.Pow(c1exit, 2))));
+
+                refractionRay.direction = (n2 * refractionRay.direction + (((n2 * c1exit) - c2exit) * exitNormal)).Normalize();
+                refractionRay.origin = exitPoint + 1e-6 * (0-exitNormal);
+
+            }
+            else
+            {
+                refractionRay.origin = result.point - (1e-06 * result.normal);
+            }
+            
+            
+            return refractionRay;
+            
+        }
+        private Vec3 Reflect(HitResult result, Ray R, int depthRecursion, double i, double j)
+        {
+            if (result.o.shading.oneSided && result.normal.Dot(R.direction) > 0)
+            {
+                return GetSurfaceColor(result.o, result, this.lights, result.o.shading.albedo[0]);
+            }
+            else if (result.normal.Dot(R.direction) > 0)
+            {
+                result.normal = 0 - result.normal;
+            }
+
+
+            Ray reflectionRay = new Ray
+            {
+                direction =( R.direction - (2 * (result.normal.Dot(R.direction)) * result.normal)).Normalize(),
+                origin = result.point + (1e-06 * result.normal)
+            };
+
+            Vec3 reflectedColor = CastRay(reflectionRay, this.objects, depthRecursion + 1, out HitResult h,i ,j);
+            return reflectedColor;
+        }
+        double Schlick(double cosTheta, double ior)
+        {
+            double r0 = Math.Pow((1 - ior) / (1 + ior), 2);
+            return r0 + (1 - r0) * Math.Pow(1 - cosTheta, 5);
+        }
+        private static double FindExitT(Vec3 sphereCenter, Vec3 P, Vec3 D, double radius)
+        {
+            Vec3 L = P - sphereCenter;
+            double b = 2 * D.Dot(L);
+            double c = L.Dot(L) - radius * radius;
+            double discriminant = b * b - 4 * c;
+            if (discriminant < 0)
+            {
+                // total internal reflection - treat as mirror
+                // this is what's likely happening at steep angles
+                if (discriminant < 0) return -1;
+            }
+            double t1 = (-b - Math.Sqrt(discriminant)) / 2;
+            double t2 = (-b + Math.Sqrt(discriminant)) / 2;
+            if (t1 > t2) return t1;
+            return t2;
+        }
         private HitResult FindClosestHit(Ray R, Object[] objects)
         {
+            
 
             HitResult resultHit = new HitResult();
             double depth = double.PositiveInfinity;
@@ -222,7 +323,8 @@ namespace Physics_Engine
                 }
                 
                 r = o.GetIntersectionPoint(R);
-                 
+
+                
 
                 if (r.t <= 0 || !r.hit || r.t > config.Clipping_range) continue;
                 if (r.t < depth)
