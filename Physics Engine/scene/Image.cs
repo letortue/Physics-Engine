@@ -3,6 +3,8 @@ using SkiaSharp;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Windows.Forms;
+using System.Windows.Forms.VisualStyles;
 using static System.Windows.Forms.DataFormats;
 
 
@@ -129,41 +131,69 @@ namespace Physics_Engine
             double stepX = (2.0 / config.Image_res[0]) * ratio;
             double stepY = -(2.0 / config.Image_res[1]);
 
-            // loop through each pixel in screen space
+           
 
             Parallel.For(0, config.Image_res[1], j =>
             {
+
+            
                 for (double i = 0; i < config.Image_res[0]; i++)
                 {
+
                     double sx = startX + i * stepX;
                     double sy = startY + j * stepY;
+                    Ray[] rays = new Ray[config.AntiAliasingRes * config.AntiAliasingRes];
+                    
+                        for (int k = 0; k < config.AntiAliasingRes; k++)
+                        {
+                            for (int h = 0; h < config.AntiAliasingRes; h++)
+                            {
+                                double offsetX = (k + 0.5) / config.AntiAliasingRes * stepX;
+                                double offsetY = (h + 0.5) / config.AntiAliasingRes * stepY;
+                                Vec4 dir4 = new Vec4(sx + offsetX, sy + offsetY, -1, 0);
+                                dir4 = Globals.Camera.matrix * dir4;
+                                dir4.Normalize();
+                                Vec3 dir = new Vec3
+                                {
+                                    X = dir4.X,
+                                    Y = dir4.Y,
+                                    Z = dir4.Z
+                                };
+                                rays[k * config.AntiAliasingRes + h] = new Ray(camWorldPos, dir);
 
-                    Vec4 dir4 = new Vec4(sx, sy, -1, 0);
-                    dir4 = Globals.Camera.matrix * dir4;
-                    dir4.Normalize();
-                    Vec3 dir = new Vec3
-                    {
-                        X = dir4.X,
-                        Y = dir4.Y,
-                        Z = dir4.Z
-                    };
-                    Ray R = new Ray(camWorldPos, dir);
+                            }
 
-                    MapObjects( R, i, j);
+                        }
+                    
+                    
+                        
+                    
+
+                    MapObjects(rays, i, j);
                 }
+                
             });
 
- 
+
         }
         
-        private void MapObjects( Ray R, double i, double j)
+        private void MapObjects( Ray[] rays, double i, double j)
         {
             int index = (int)((j * config.Image_res[0] + i) * 4);
-            Vec3 minusDir = new Vec3(0 - R.direction.X, 0 - R.direction.Y, 0 - R.direction.Z);
-            minusDir = minusDir.Normalize();
+            Vec3 color = new Vec3(0, 0, 0);
 
-            Vec3 color = CastRay(R, this.objects, 0, out HitResult result, i ,j);
             
+            color += CastRay(rays[0], this.objects, 0, out HitResult result, i, j);
+            int num = 1;
+
+            for (int k = 1; k < rays.Length; k++)
+            {
+                color += CastRay(rays[k], this.objects, 0, out HitResult hit, i, j);
+                num++;
+            }
+            color /= num;
+
+            Vec3 minusDir = new Vec3(0 - rays[0].direction.X, 0 - rays[0].direction.Y, 0 - rays[0].direction.Z);
             ColorPixel(index, color, minusDir, result, result.o);
             
             
@@ -174,14 +204,7 @@ namespace Physics_Engine
         private Vec3 CastRay(Ray R, Object[] objects, int depthRecursion, out HitResult hit, double i,double j)
         {
             hit = new HitResult();
-            if (99 == Globals.TimeElapsed % 100 && i == config.Image_res[0] / 2 && j == config.Image_res[1] / 2)
-            {
-                double mag = Math.Sqrt(R.direction.X * R.direction.X + R.direction.Y * R.direction.Y + R.direction.Z * R.direction.Z);
-                if (mag > 1.01 || mag < 0.99)
-                {
-                    Console.WriteLine($"UNNORMALIZED RAY depth:{depthRecursion} mag:{mag} dir:{R.direction}");
-                }
-            }
+            
             if (depthRecursion > 3) return backgroundColor;
 
             HitResult result = FindClosestHit(R, objects);
@@ -212,15 +235,12 @@ namespace Physics_Engine
                 Vec3 refractedColor = CastRay(refractionRay, this.objects, depthRecursion + 1, out HitResult h, i, j);
                 Vec3 reflectedColor = Reflect(result, R, depthRecursion, i, j);
                 Vec3 finalColor = (kr *  reflectedColor) +  ((1 - kr) * refractedColor);
-                if( 99 == Globals.TimeElapsed % 100 && i == config.Image_res[0] / 2 && j == config.Image_res[1] / 2)
-                {
-                    Console.WriteLine($"normal: {result.normal}, rayDir: {R.direction}, cosTheta: {cosTheta}, kr: {kr}");
-                }
+                
                 
                 return result.o.shading.albedo[0] * finalColor;
 
             }
-            return GetSurfaceColor(result.o, result, this.lights, result.o.shading.albedo[0]);
+            return GetSurfaceColor(result.o, result, this.lights, result.albedo, result.o.shading.textureFunc);
 
 
         }
@@ -267,7 +287,7 @@ namespace Physics_Engine
         {
             if (result.o.shading.oneSided && result.normal.Dot(R.direction) > 0)
             {
-                return GetSurfaceColor(result.o, result, this.lights, result.o.shading.albedo[0]);
+                return GetSurfaceColor(result.o, result, this.lights, result.albedo, result.o.shading.textureFunc);
             }
             else if (result.normal.Dot(R.direction) > 0)
             {
@@ -418,27 +438,40 @@ namespace Physics_Engine
             return false;
         }
         
-
+        private bool IsLit(Vec3 minusDir, HitResult hit, Light light)
+        {
+            
+                if (light is SpotLight spot)
+                {
+                    if (spot.falloff > spot.GetDirection(hit.point).Normalize().Dot(spot.facingDir)) return false; 
+                    
+                }
+                foreach (Object ob in objects)
+                {
+                    if (IsInShadow(minusDir, hit, ob, light)) { return false; }
+                    
+                }
+                return true;
+        }
         
-        public Vec3 GetSurfaceColor(Object o, HitResult hit, Light[] lights, Vec3 albedo)
+        public Vec3 GetSurfaceColor(Object o, HitResult hit, Light[] lights, Vec3 albedo,  Func<Vec3, Vec3> textureFunc)
         {
             albedo = albedo / Math.PI;
+            //physics accurate normalization
             Vec3 contributions = new Vec3(0, 0, 0);
             foreach (Light light in lights)
             {
                 Vec3 dir = light.GetDirection(hit.point);
                 Vec3 minusDir = new Vec3(0 - dir.X, 0 - dir.Y, 0 - dir.Z);
-                bool isInShadow = false;
-                foreach (Object ob in objects)
-                {
-                    if (IsInShadow(minusDir, hit, ob, light)) { isInShadow = true; break; }
-                }
-                if (!isInShadow)
+
+                if (IsLit( minusDir, hit, light))
                 {
                     double dot;
                     if (o is Disk) dot = Math.Abs(minusDir.Dot(hit.normal));
                     else dot = minusDir.Dot(hit.normal);
-                    contributions += Math.Max(dot, 0) * light.GetIntensity(hit.point) * light.color;
+
+                    
+                    contributions += Math.Max(dot, 0) * light.GetIntensity(hit.point) * light.color  ;
                 }
 
             }

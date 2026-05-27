@@ -27,6 +27,8 @@ namespace Physics_Engine
         public double w1;
         public double w2;
         public Object o;
+        public double textureT;
+        public double textureV;
         
     }
     public struct VertexAttributes
@@ -35,6 +37,8 @@ namespace Physics_Engine
         public Vec3[] albedo;
         public Vec3[] velocity;
         public Vec3[] acceleration;
+        public double[] textureT;
+        public double[] textureV;
         public double[] opacity;
     }
     public struct ShadingAttributes
@@ -46,6 +50,7 @@ namespace Physics_Engine
         public bool isReflective;
         public bool isRefractive;
         public double refIndex;
+        public Func<Vec3, Vec3> textureFunc;
     }
     public struct Ray
     {
@@ -107,6 +112,29 @@ namespace Physics_Engine
             return intensity;
         }
 
+    }
+    public class SpotLight: Light
+    {
+        Vec3 pos { get; set; }
+        public double falloff { get; set; }
+        public Vec3 facingDir { get; set; }
+        public SpotLight(Vec3 pos, Vec3 color, double intensity, double falloff, Vec3 facingDir)
+        {
+            this.color = color;
+            this.pos = pos; 
+            this.intensity = intensity;
+            this.falloff = falloff;
+            this.facingDir = facingDir.Normalize();
+        }
+        public override Vec3 GetDirection(Vec3 hitPoint)
+        {
+            return (hitPoint - pos).Normalize();
+        }
+        public override double GetIntensity(Vec3 hitPoint)
+        {
+            double distance = (pos - hitPoint).Magnitude();
+            return intensity / (distance * distance * 4 * Math.PI);
+        }
     }
     public abstract class Object
     {
@@ -177,6 +205,8 @@ namespace Physics_Engine
             atts.acceleration = [attributes.acceleration[vi0], attributes.acceleration[vi1], attributes.acceleration[vi2]];
             atts.opacity = [attributes.opacity[vi0], attributes.opacity[vi1], attributes.opacity[vi2]];
             atts.albedo = [attributes.albedo[vi0], attributes.albedo[vi1], attributes.albedo[vi2]];
+            atts.textureT = [attributes.textureT[vi0], attributes.textureT[vi1], attributes.textureT[vi2]];
+            atts.textureV = [attributes.textureV[vi0], attributes.textureV[vi1], attributes.textureV[vi2]];
             return atts;
         }
         public static ShadingAttributes TShAtts(ShadingAttributes attributes, int i)
@@ -224,7 +254,7 @@ namespace Physics_Engine
             Vec3 dir = r.direction;
             HitResult result = new HitResult();
             result.color = this.attributes.colors[0];
-            result.albedo = this.shading.albedo[0];
+            
             result.o = this;
             bool intersects = Maths.SolveQuadratic(dir.Dot(dir), 2 * L.Dot(dir), L.Dot(L) - Math.Pow(this.radius, 2), out double? t1, out double? t2);
             if (!intersects)
@@ -241,6 +271,7 @@ namespace Physics_Engine
                 {
 
                     result.point = r.origin + (double)t1 * dir;
+                    result.albedo = this.shading.textureFunc is not null ? this.shading.textureFunc(result.point) : this.shading.albedo[0];
                     result.normal = (result.point - this.vertices[0]).Normalize();
                     result.t = (double) t1;
                     return result;
@@ -250,12 +281,14 @@ namespace Physics_Engine
                     if(t1< t2)
                     {
                         result.point = r.origin + (double)t1 * dir;
+                        result.albedo = this.shading.textureFunc is not null ? this.shading.textureFunc(result.point) : this.shading.albedo[0];
                         result.normal = (result.point - this.vertices[0]).Normalize();
                         result.t = (double)t1;
                     }
                     else
                     {
                         result.point = r.origin + (double)t2 * dir;
+                        result.albedo = this.shading.textureFunc is not null ? this.shading.textureFunc(result.point) : this.shading.albedo[0];
                         result.normal = (result.point - this.vertices[0]).Normalize();
                         result.t = (double)t2;
                     }
@@ -296,7 +329,8 @@ namespace Physics_Engine
             result.hit = true;
             result.point = r.origin + (result.t * r.direction);
             result.color = this.attributes.colors[0];
-            result.albedo = this.shading.albedo[0];
+            result.albedo = this.shading.textureFunc is not null ? this.shading.textureFunc(result.point) : this.shading.albedo[0];
+            
             
             return result;
             
@@ -328,10 +362,12 @@ namespace Physics_Engine
             HitResult result = p.GetIntersectionPoint(r);
             double denom = r.direction.Dot(normal);
             if (Math.Abs(denom) < 1e-6) { result.hit = false; return result; }
-            result.albedo = this.shading.albedo[0];
+            result.albedo = this.shading.textureFunc is not null ? this.shading.textureFunc(result.point) : this.shading.albedo[0];
             result.color = this.attributes.colors[0];
             result.normal = normal;
             result.o = this;
+            result.textureT = result.point.X;
+            result.textureV = result.point.Y;
             if (!result.hit)
             {
                 return result;
@@ -422,6 +458,16 @@ namespace Physics_Engine
             double G = attributes.colors[0].Y * w0 + attributes.colors[1].Y * w1 + attributes.colors[2].Y * w2;
             double B = attributes.colors[0].Z * w0 + attributes.colors[1].Z * w1 + attributes.colors[2].Z * w2;
             result.color.X = R; result.color.Y = G; result.color.Z = B;
+            
+            if (this.shading.textureFunc is not null)
+            {
+                result.textureT = attributes.textureT[0] * w0 + attributes.textureT[1] * w1 + attributes.textureT[2] * w2;
+                result.textureV = attributes.textureV[0] * w0 + attributes.textureV[1] * w1 + attributes.textureV[2] * w2;
+                result.albedo = this.shading.textureFunc(result.point);
+                return result;
+            }
+
+            
             if (shading.isInterpolatedAlbedo)
             {
                 double albedoR = attributes.albedo[0].X * w0 + attributes.albedo[1].X * w1 + attributes.albedo[2].X * w2;
@@ -434,9 +480,11 @@ namespace Physics_Engine
             else
                 result.albedo = shading.albedo[0];
 
+            
 
 
-                return result;
+
+            return result;
 
             
 

@@ -434,6 +434,12 @@ namespace Physics_Engine
             
         
         }
+        public static Matrix4 CreateCameraMatrix(double[,] data)
+        {
+            Matrix4 m = new Matrix4(false);
+            m.data = data;
+            return m;
+        }
         public Matrix4 Transpose4()
         {
             Matrix4 m = new();

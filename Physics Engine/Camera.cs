@@ -18,11 +18,12 @@ namespace Physics_Engine
         private double pitch;
         readonly Config config;
         Matrix4 yawMatrix;
-        public Camera()
+        public Camera(Matrix4 matrix = null)
         {
+
             string json = File.ReadAllText("config.json");
             config = JsonSerializer.Deserialize<Config>(json)!;
-            matrix = new Matrix4();
+            this.matrix = matrix == null ? new Matrix4() : matrix;
             
         }
         

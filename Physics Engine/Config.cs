@@ -16,7 +16,9 @@ namespace Physics_Engine
         public double FOV { get; set; }
         public double Movement_speed { get; set; }
         public double[] BackgroundColor { get; set; }
-        
-        
+        public int AntiAliasingRes { get; set; }
+
+
+
     }
 }
