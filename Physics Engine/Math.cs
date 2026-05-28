@@ -28,12 +28,12 @@ namespace Physics_Engine
             return $"{X} {Y} {Z}";
         }
 
-        public double dot(Vec3 v)
+        public double Dot(Vec3 v)
         {
             return this.X * v.X + this.Y * v.Y + this.Z * v.Z;
             
         }
-        public Vec3 cross(Vec3 v)
+        public Vec3 Cross(Vec3 v)
         {
             Vec3 result = new Vec3();
             result.X = this.Y * v.Z - this.Z * v.Y;
@@ -57,7 +57,7 @@ namespace Physics_Engine
 
         }
 
-        public Vec3 normalize()
+        public Vec3 Normalize()
         {
             double x = this.X;
             double y = this.Y;
@@ -112,7 +112,7 @@ namespace Physics_Engine
             return $"{X} {Y} {Z} {W}";
         }
 
-        public Vec4 dot(Vec4 v)
+        public Vec4 Dot(Vec4 v)
         {
             return new Vec4(this.X * v.X, this.Y * v.Y, this.Z * v.Z, this.W * v.W);
 
@@ -178,7 +178,7 @@ namespace Physics_Engine
             
         
         }
-        public Matrix4 transpose4()
+        public Matrix4 Transpose4()
         {
             Matrix4 m = new();
             for (int i = 0; i < 4; i++)
@@ -190,7 +190,7 @@ namespace Physics_Engine
             }
             return m;
         }
-        public Matrix4 transpose3()
+        public Matrix4 Transpose3()
         {
             Matrix4 m = new Matrix4();
             for (int i = 0; i < 3; i++)
@@ -202,19 +202,19 @@ namespace Physics_Engine
             }
             return m;
         }
-        public static Matrix4 projectionMatrix()
+        public static Matrix4 ProjectionMatrix()
         {
             Matrix4 m = new Matrix4();
             m[3, 2] = -1;
             m[3, 3] = 0;
-            m[2, 2] = -config.clipping_range / (config.clipping_range - 1); 
-            m[2, 3] = -config.clipping_range / (config.clipping_range - 1);
+            m[2, 2] = -config.Clipping_Range / (config.Clipping_Range - 1); 
+            m[2, 3] = -config.Clipping_Range / (config.Clipping_Range - 1);
             double f = 1 / Math.Tan(config.FOV / 2 / 57.2958D);
             m[0, 0] = f;
             m[1, 1] = f;
             return m;
         }
-        public static Matrix4 rotationMatrix(int axis, double degrees)
+        public static Matrix4 RotationMatrix(int axis, double degrees)
         {
             Matrix4 m = new Matrix4();
             if(axis == 0)
@@ -244,7 +244,7 @@ namespace Physics_Engine
         }
         public Matrix4 InverseRotationPart()
         {
-            Matrix4 R_T = this.transpose3();
+            Matrix4 R_T = this.Transpose3();
             
             Vec3 t = new();
             t.X = this[0, 3];
@@ -296,7 +296,7 @@ namespace Physics_Engine
             return m;
         }
 
-        public static Vec4 movementMult(Matrix4 m, Vec4 v)
+        public static Vec4 MovementMult(Matrix4 m, Vec4 v)
         {
             Vec4 v1 = new Vec4(0, 0, 0, 1);
 

@@ -26,7 +26,7 @@ namespace Physics_Engine
             
         }
         
-        public void move(Vec3 vector)
+        public void Move(Vec3 vector)
         {
             Vec4 v = new Vec4(vector.X, vector.Y, vector.Z, 1);
             v = yawMatrix * v;
@@ -38,14 +38,14 @@ namespace Physics_Engine
 
             
         }
-        public void rotate(int axis, double d)
+        public void Rotate(int axis, double d)
         {
-            if(axis == 0) pitch += d * config.sensitivity;
-            if(axis == 1) yaw += d * config.sensitivity;
-            pitch = Math.Clamp(pitch, -Math.PI, Math.PI);
-            Console.WriteLine(pitch);
-            Matrix4 pitchMatrix = Matrix4.rotationMatrix(0, -pitch);
-            yawMatrix = Matrix4.rotationMatrix(1, -yaw);
+            if(axis == 0) pitch += d * config.Sensitivity;
+            if(axis == 1) yaw += d * config.Sensitivity;
+            pitch = Math.Clamp(pitch, -Math.PI/2, Math.PI/2);
+            
+            Matrix4 pitchMatrix = Matrix4.RotationMatrix(0, -pitch);
+            yawMatrix = Matrix4.RotationMatrix(1, -yaw);
             Matrix4 rotation = yawMatrix * pitchMatrix;
 
             
