@@ -1,6 +1,7 @@
 namespace Physics_Engine
 {
     using Accessibility;
+    using Microsoft.VisualBasic.ApplicationServices;
     using OpenTK.Graphics.OpenGL;
     using SkiaSharp;
     using SkiaSharp.Views.Desktop;
@@ -10,6 +11,7 @@ namespace Physics_Engine
     using System.Security.Policy;
     using System.Text.Json;
     using System.Windows.Forms;
+    using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 
     public partial class Form1 : Form
@@ -146,7 +148,7 @@ namespace Physics_Engine
         };
 
             int[] faces = { 4, 4, 4, 4, 4, 4 }; // 6 faces, 4 vertices each
-            bool[] ratio = { false, false, false, false, false, false };
+            
 
             int[] indices = {
             0,  1,  2,  3,   // front
@@ -157,7 +159,7 @@ namespace Physics_Engine
             20, 21, 22, 23   // bottom
         };
 
-            bool[] onesided = { false, false, false, false, false, false };
+            
 
             // simple colors per vertex - each face a different color
             Vec3[] colors = {
@@ -218,12 +220,16 @@ namespace Physics_Engine
             };
             ShadingAttributes shading = new ShadingAttributes
             {
-                normal = normals
+                normal = normals,
+                onesided = false
             };
             
 
-            Mesh cube = new Mesh(vertices, atts, shading, normals, faces, indices, onesided);
-            Object[] objects = [cube, t1];
+            Mesh cube = new Mesh(vertices, atts, shading, normals, faces, indices);
+            Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj");
+            Console.WriteLine(import.nTriangles);
+            Object[] objects = [import];
+            
             image = new Image(objects);
 
             //

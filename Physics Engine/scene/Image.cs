@@ -93,6 +93,7 @@ namespace Physics_Engine
                 
             }
         }
+        
         public void HandleMesh(Mesh mesh, Matrix4 inverse)
         {
             int i = 0;
@@ -101,7 +102,7 @@ namespace Physics_Engine
                 Vec3 centroid = (t.vertices[0] + t.vertices[1] + t.vertices[2]) / 3.0;
                 Vec3 viewDir = (centroid - new Vec3(Globals.Camera.matrix[0, 3], Globals.Camera.matrix[1, 3], Globals.Camera.matrix[2, 3])).Normalize();
 
-                if (viewDir.Dot(t.normal) > 0) { i++; continue; }
+                if (viewDir.Dot(t.normal) > 0 && mesh.shading.onesided == true) { i++; continue; }
                 ;
                 i++;
                 HandleTriangle(t, inverse);

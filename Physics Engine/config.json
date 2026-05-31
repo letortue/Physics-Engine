@@ -3,7 +3,7 @@
   "Interval": 7,
   "Canvas_Res": [ 2, 2 ],
   "Sensitivity": 0.001,
-  "Clipping_Range": 50,
+  "Clipping_Range": 1000,
   "Focal_Length": 1,
   "Aperturemm": 2,
   "FOV": 100,

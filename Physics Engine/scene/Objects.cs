@@ -22,6 +22,7 @@ namespace Physics_Engine
     public struct ShadingAttributes
     {
         public Vec3[] normal;
+        public bool onesided;
     }
     public abstract class Object
     {
@@ -69,26 +70,23 @@ namespace Physics_Engine
         public int nfaces { get; set; }
         public int[] vertexIndices { get; set; }
         public bool convex { get; set; }
-        public bool[] onesided { get; set; }
         public Triangle[] triangles { get; set; }
         public int nTriangles { get; set; }
         public double[,] tIndices { get; set; }
         public Vec3[] normals { get; set; }
         
-        public Mesh(Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, Vec3[] normals, int[] faces, int[] indices, bool[] onesided, bool convex = true)
+        public Mesh(Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, Vec3[] normals, int[] faces, int[] indices)
         {
             this.vertices = vertices;
             this.faces = faces;
             this.nfaces = faces.Length;
             this.vertexIndices = indices;
-            this.convex = convex;
             this.attributes = attributes;
-            this.onesided = onesided;
             this.shading = shading;
             this.normals = normals;
 
             this.nTriangles = 0;
-            for (int i = 0; i < faces.Length; i++)
+            for (int i = 0; i < nfaces; i++)
             {
                 if (faces[i] > 2)
                 {
@@ -97,7 +95,7 @@ namespace Physics_Engine
             }
             this.tIndices = new double[nTriangles, 3];
             
-            triangles = new Triangle[this.nTriangles];
+            List<Triangle> triangles = new List<Triangle>();
             int start = 0;
             int triIndex = 0;
             for (int i = 0; i < nfaces; i++)
@@ -111,25 +109,52 @@ namespace Physics_Engine
                     tIndices[triIndex, 0] = vi0;
                     tIndices[triIndex, 1] = vi1;
                     tIndices[triIndex, 2] = vi2;
-                    triangles[triIndex++] = new Triangle(triangleVerts, normals[i], atts, sh);
+                    Vec3 edge1 = vertices[vi1] - vertices[vi0];
+                    Vec3 edge2 = vertices[vi2] - vertices[vi0];
+                    Vec3 faceNormal = edge1.Cross(edge2).Normalize();
+                    triangles.Add(new Triangle(triangleVerts, faceNormal, atts, sh));
+                    
 
                 }
                 start += faces[i];
             }
+            this.triangles = triangles.ToArray();
         }
         public static VertexAttributes TVAtts(VertexAttributes attributes, int vi0, int vi1, int vi2)
         {
             VertexAttributes atts = attributes;
-            atts.colors = [attributes.colors[vi0], attributes.colors[vi1], attributes.colors[vi2]];
-            atts.velocity = [attributes.velocity[vi0], attributes.velocity[vi1], attributes.velocity[vi2]];
-            atts.acceleration = [attributes.acceleration[vi0], attributes.acceleration[vi1], attributes.acceleration[vi2]];
-            atts.opacity = [attributes.opacity[vi0], attributes.opacity[vi1], attributes.opacity[vi2]];
+            try
+            {
+                atts.colors = [attributes.colors[vi0], attributes.colors[vi1], attributes.colors[vi2]];
+                atts.velocity = [attributes.velocity[vi0], attributes.velocity[vi1], attributes.velocity[vi2]];
+                atts.acceleration = [attributes.acceleration[vi0], attributes.acceleration[vi1], attributes.acceleration[vi2]];
+                atts.opacity = [attributes.opacity[vi0], attributes.opacity[vi1], attributes.opacity[vi2]];
+            }
+            catch (Exception e)
+            {
+                atts.colors = [new Vec3(255, 255, 255), new Vec3(255, 255, 255), new Vec3(255, 255, 255)];
+                atts.velocity = [new Vec3(0, 0, 0), new Vec3(0, 0, 0), new Vec3(0, 0, 0)];
+                atts.acceleration = [new Vec3(0, 0, 0), new Vec3(0, 0, 0), new Vec3(0, 0, 0)];
+                atts.opacity = [255,255,255];
+                
+            }
+            
             
             return atts;
         }
         public static ShadingAttributes TShAtts(ShadingAttributes attributes, int i)
         {
-            attributes.normal = [attributes.normal[i]];
+            try
+            {
+                attributes.normal = [attributes.normal[i]];
+            }
+            catch(Exception e)
+            {
+
+            }
+            
+            
+            
             
 
             return attributes;
