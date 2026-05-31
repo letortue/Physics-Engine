@@ -144,18 +144,6 @@ namespace Physics_Engine
         }
         public static ShadingAttributes TShAtts(ShadingAttributes attributes, int i)
         {
-            try
-            {
-                attributes.normal = [attributes.normal[i]];
-            }
-            catch(Exception e)
-            {
-
-            }
-            
-            
-            
-            
 
             return attributes;
         }

@@ -220,7 +220,6 @@ namespace Physics_Engine
             };
             ShadingAttributes shading = new ShadingAttributes
             {
-                normal = normals,
                 onesided = false
             };
             

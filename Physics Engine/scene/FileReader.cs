@@ -41,7 +41,7 @@
             }
             
             
-            Mesh mesh = new Mesh(vertices.ToArray(), new VertexAttributes(), new ShadingAttributes { normal = faceNormals.ToArray() }, faceNormals.ToArray(), faces.ToArray(), indices.ToArray());
+            Mesh mesh = new Mesh(vertices.ToArray(), new VertexAttributes(), new ShadingAttributes(), faceNormals.ToArray(), faces.ToArray(), indices.ToArray());
             
             return mesh;
             
