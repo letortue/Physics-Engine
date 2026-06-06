@@ -1,4 +1,5 @@
 ﻿
+using Aspose.ThreeD.Entities;
 using SkiaSharp;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -14,8 +15,8 @@ namespace Physics_Engine
     {
         public Object[] objects;
         public Light[] lights;
-        public byte[] pixels;
-        public double[] depths;
+        
+        
         readonly SKBitmap bitmap;
         Config config { get; set; }
          Vec3 backgroundColor { get; set; }
@@ -26,19 +27,20 @@ namespace Physics_Engine
             config = JsonSerializer.Deserialize<Config>(json)!;
 
             bitmap = new SKBitmap(config.Image_res[0], config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
-            this.pixels = new byte[config.Image_res[0] * config.Image_res[1] * 4];
-            this.depths = new double[config.Image_res[0] * config.Image_res[1]];
-            Array.Fill(depths, double.PositiveInfinity);
+            
+            
+            
 
             backgroundColor = new Vec3(config.BackgroundColor[0], config.BackgroundColor[1], config.BackgroundColor[2]);
             this.objects = objects;
             this.lights = lights;
 
             ObjectToWorldMatrix = new Matrix4();
-            MapImage();
+            
 
 
         }
+        
         public (Vec3 min, Vec3 max) GetBoundingBox(Vec3[] vertices)
         {
 
@@ -61,10 +63,9 @@ namespace Physics_Engine
             Vec3 max = new Vec3(MaxX, MaxY, MaxZ);
             return (min, max);
         }
-        public void DrawImage(SKCanvas canvas)
+        public void DrawImage(SKCanvas canvas, SKBitmap map)
         {
-            System.Runtime.InteropServices.Marshal.Copy(pixels, 0, bitmap.GetPixels(), pixels.Length);
-            canvas.DrawBitmap(bitmap, 0, 0);
+            canvas.DrawBitmap(map, 0, 0);
         }
         public void Update(Object o, double pixelsPerMeter = 50)
         {
@@ -112,12 +113,12 @@ namespace Physics_Engine
 
 
 
-        public void MapImage(bool IsAntiAlias = true)
+        public byte[] MapImage(bool IsAntiAlias = true)
         {
 
             Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
-            Array.Clear(pixels, 0, pixels.Length);
-            Array.Fill(depths, double.PositiveInfinity);
+            
+            
             Vec3 camWorldPos = new Vec3
             {
                 X = Globals.Camera.matrix[0, 3],
@@ -130,8 +131,10 @@ namespace Physics_Engine
             double startY = 1 - (0.5 / config.Image_res[1] * 2);
             double stepX = (2.0 / config.Image_res[0]) * ratio;
             double stepY = -(2.0 / config.Image_res[1]);
+            
+            SKBitmap map = new SKBitmap(config.Image_res[0], config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
+            byte[] pixels = new byte[config.Image_res[0] * config.Image_res[1] * 4];
 
-           
 
             Parallel.For(0, config.Image_res[1], j =>
             {
@@ -169,15 +172,17 @@ namespace Physics_Engine
                         
                     
 
-                    MapObjects(rays, i, j);
+                    MapObjects(pixels, rays, i, j);
                 }
                 
             });
 
+            
+            return pixels;
 
         }
         
-        private void MapObjects( Ray[] rays, double i, double j)
+        private void MapObjects(byte[] pixels, Ray[] rays, double i, double j)
         {
             int index = (int)((j * config.Image_res[0] + i) * 4);
             Vec3 color = new Vec3(0, 0, 0);
@@ -194,12 +199,50 @@ namespace Physics_Engine
             color /= num;
 
             Vec3 minusDir = new Vec3(0 - rays[0].direction.X, 0 - rays[0].direction.Y, 0 - rays[0].direction.Z);
-            ColorPixel(index, color, minusDir, result, result.o);
+            ColorPixel(pixels, index, color, minusDir, result, result.o);
             
             
 
         }
-        
+        public void ColorPixel(byte[] pixels, int index, Vec3 color, Vec3 minusDir, HitResult result, Object o)
+        {
+            if (!result.hit)
+            {
+                byte colorX = (byte)Math.Clamp(color.X, 0, 255);
+                byte colorY = (byte)Math.Clamp(color.Y, 0, 255);
+                byte colorZ = (byte)Math.Clamp(color.Z, 0, 255);
+                pixels[index + 0] = (byte)(colorZ);
+                pixels[index + 1] = (byte)(colorY);
+                pixels[index + 2] = (byte)(colorX);
+                pixels[index + 3] = 255;
+                return;
+            }
+
+            if (o.shading.facing_ratio[0])
+            {
+                double minus = minusDir.Dot(result.normal);
+
+                double facingIntensity;
+                facingIntensity = Math.Max(minus, 0);
+
+                pixels[index + 0] = (byte)(facingIntensity * result.color.Z);
+                pixels[index + 1] = (byte)(facingIntensity * result.color.Y);
+                pixels[index + 2] = (byte)(facingIntensity * result.color.X);
+                pixels[index + 3] = 255;
+            }
+            else
+            {
+
+
+                byte colorX = (byte)Math.Clamp(color.X, 0, 255);
+                byte colorY = (byte)Math.Clamp(color.Y, 0, 255);
+                byte colorZ = (byte)Math.Clamp(color.Z, 0, 255);
+                pixels[index + 0] = (byte)(colorZ);
+                pixels[index + 1] = (byte)(colorY);
+                pixels[index + 2] = (byte)(colorX);
+                pixels[index + 3] = 255;
+            }
+        }
 
         private Vec3 CastRay(Ray R, Object[] objects, int depthRecursion, out HitResult hit, double i,double j)
         {
@@ -208,6 +251,7 @@ namespace Physics_Engine
             if (depthRecursion > 3) return backgroundColor;
 
             HitResult result = FindClosestHit(R, objects);
+            
             hit = result;
             
             if (!result.hit) return backgroundColor;
@@ -337,6 +381,7 @@ namespace Physics_Engine
                 HitResult r;
                 if (o is Mesh mesh)
                 {
+
                     r = FindClosestHit(R, mesh.triangles);
                     if (r.hit && r.t < depth) { depth = r.t; resultHit = r; }
                     continue;
@@ -359,45 +404,7 @@ namespace Physics_Engine
             return resultHit;
         }
 
-        public void ColorPixel(int index, Vec3 color, Vec3 minusDir, HitResult result, Object o)
-        {
-            if(!result.hit)
-            {
-                byte colorX = (byte)Math.Clamp(color.X, 0, 255);
-                byte colorY = (byte)Math.Clamp(color.Y, 0, 255);
-                byte colorZ = (byte)Math.Clamp(color.Z, 0, 255);
-                pixels[index + 0] = (byte)(colorZ);
-                pixels[index + 1] = (byte)(colorY);
-                pixels[index + 2] = (byte)(colorX);
-                pixels[index + 3] = 255;
-                return;
-            }
-
-            if (o.shading.facing_ratio[0])
-            {
-                double minus = minusDir.Dot(result.normal);
-
-                double facingIntesity;
-                facingIntesity = Math.Max(minus, 0);
-
-                pixels[index + 0] = (byte)(facingIntesity * result.color.Z);
-                pixels[index + 1] = (byte)(facingIntesity * result.color.Y);
-                pixels[index + 2] = (byte)(facingIntesity * result.color.X);
-                pixels[index + 3] = 255;
-            }
-            else
-            {
-                
-                
-                byte colorX = (byte)Math.Clamp(color.X, 0, 255);
-                byte colorY = (byte)Math.Clamp(color.Y, 0, 255);
-                byte colorZ = (byte)Math.Clamp(color.Z, 0, 255);
-                pixels[index + 0] = (byte)(colorZ);
-                pixels[index + 1] = (byte)(colorY);
-                pixels[index + 2] = (byte)(colorX);
-                pixels[index + 3] = 255;
-            }
-        }
+        
         
         
         public bool HandleShadow(Object o, HitResult hit, Vec3 minusDir, Light light)

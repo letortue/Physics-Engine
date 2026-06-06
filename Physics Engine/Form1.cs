@@ -9,6 +9,7 @@ namespace Physics_Engine
     using System.ComponentModel;
     using System.Drawing.Text;
     using System.Linq.Expressions;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices.Marshalling;
     using System.Security.Policy;
     using System.Text.Json;
@@ -24,12 +25,17 @@ namespace Physics_Engine
         readonly public Object[] objects;
         public  SKCanvas canvas;
         Image image;
-
+        bool RenderFinished = false;
+        bool WriteFinished = false;
+        int frameIndex = 0;
+        List<byte[]> frames = new List<byte[]>();
+        int renderFrame = 0;
 
         public Form1()
         {
 
-
+            //Globals.Camera.Rotate(0,250);
+            Globals.Camera.Rotate(1,-750);
 
             //
             KeyPressed = new bool[6];
@@ -39,6 +45,26 @@ namespace Physics_Engine
 
             string json = File.ReadAllText("config.json");
             config = JsonSerializer.Deserialize<Config>(json)!;
+
+
+            string? dir = Path.GetDirectoryName(config.ReadRenderPath);
+
+            if(!string.IsNullOrEmpty(dir) && config.IsRead)
+            {
+                RenderFinished = true;
+                BinaryReader reader = new BinaryReader(File.Open(config.ReadRenderPath, FileMode.Open));
+
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                {
+                    int length = reader.ReadInt32();  // read frame size
+                    byte[] frame = reader.ReadBytes(length); // read frame data
+
+                    frames.Add(frame);
+                }
+                reader.Close();
+            }
+            
+
 
 
             InitializeComponent();
@@ -175,8 +201,8 @@ namespace Physics_Engine
             Mesh cube = new Mesh(vertices, atts, shading, faces, indices, onesided);
 
             Vec3[] c = { new Vec3(255, 255, 255), new Vec3(255, 255, 255), new Vec3(255, 255, 255) };
-            Vec3[] v = { new Vec3(0, 0, 0), new Vec3(0, 0, 0), new Vec3(0, 0, 0) };
-            Vec3[] a = { new Vec3(0, 0, 0), new Vec3(0, 0, 0), new Vec3(0, 0, 0) };
+            Vec3[] v = { new Vec3(-0.1, 0, 0), new Vec3(-0.1, 0, 0), new Vec3(-0.1, 0, 0) };
+            Vec3[] a = { new Vec3(-0.1, 0, 0), new Vec3(-0.1, 0, 0), new Vec3(-0.1, 0, 0) };
             double[] o = new double[24];
             VertexAttributes at = new VertexAttributes
             {
@@ -193,51 +219,136 @@ namespace Physics_Engine
                 return (x + z) % 2 == 0 ? new Vec3(1,1,1) : new Vec3(0,0,0);
             }
             
-            Light[] lights = { new DistantLight(new Vec3(255, 0, 0), 3, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 05, new Vec3(01, -0.1, -0.5)) , new PointLight(new Vec3(0,0,-20), new Vec3(255,255,255), 10000), new SpotLight(new Vec3(10,0,0), new Vec3(255,10,255), 1000000, 0.3,new Vec3(0,-0.6,-1))};
+            Light[] lights = {/* new DistantLight(new Vec3(255, 0, 0), 3, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 05, new Vec3(01, -0.1, -0.5)) ,*/ new PointLight(new Vec3(0,7,20.1), new Vec3(255,255,255), 10000) /*, new SpotLight(new Vec3(10,0,0), new Vec3(255,10,255), 1000000, 0.3,new Vec3(0,-0.6,-1))*/};
             Ball ball1 = new Ball(new Vec3(0, 0, -10), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, isRefractive = true, refIndex = 1.05}, 5);
             Ball ball2 = new Ball(new Vec3(0, 0, -30), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 0, 0)], isInterpolatedAlbedo = false, isReflective = false }, 5);
             Plane plane1 = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, textureFunc = CheckerBoard }, new Vec3(0,1,0), new Vec3(0,-20,0));
             Plane plane2 = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = true, oneSided = false }, new Vec3(1,0,0), new Vec3(-40,0,0));
             Disk disk = new Disk(new Vec3(-15,5,0), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false }, new Vec3(0,1,1), 10);
-            Object[] objects = { ball1 , ball2 , plane1};
+            VertexAttributes import_attributes = new VertexAttributes
+            {
+                colors = [new Vec3(255,255,255)],
+                albedo = [new Vec3(1,1,1)],
+                velocity = [new Vec3(0,0,0)],
+                acceleration = [new Vec3(0, 0, 0)],
+                textureT = [0],
+                textureV = [0],
+                opacity = [255]
+            };
+            ShadingAttributes import_shading = new ShadingAttributes
+            {
+                isInterpolatedAlbedo = false,
+                albedo = [new Vec3(1,1,1)],
+                facing_ratio = [false],
+                oneSided = false,
+                isReflective = false,
+                isRefractive = false,
+                textureFunc = null,
+                refIndex = 1
+            };
+            Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj", import_attributes, import_shading);
+            Object[] objects = { ball1, ball2, plane1 };
 
 
             image = new Image(objects, lights);
 
-            //
+
+
+
             
+
+
+
+            
+
             Timer timer = new Timer();
-            
             timer.Interval = config.Interval;
+
+
             timer.Tick += (s, e) =>
             {
+                if ((frameIndex >= config.FrameAmount) && config.PreLoad) RenderFinished = true;
+                if (!RenderFinished)
+                {
+                    if(!config.PreLoad)
+                    {
+                        if (KeyPressed[0]) Globals.Camera.Move(new Vec3(0, 0, -config.Movement_speed));
+                        if (KeyPressed[1]) Globals.Camera.Move(new Vec3(-config.Movement_speed, 0, 0));
+                        if (KeyPressed[2]) Globals.Camera.Move(new Vec3(0, 0, config.Movement_speed));
+                        if (KeyPressed[3]) Globals.Camera.Move(new Vec3(config.Movement_speed, 0, 0));
+                        if (KeyPressed[4]) Globals.Camera.Move(new Vec3(0, -config.Movement_speed, 0));
+                        if (KeyPressed[5]) Globals.Camera.Move(new Vec3(0, config.Movement_speed, 0));
+                    }
+                    
 
-                if (KeyPressed[0]) Globals.Camera.Move(new Vec3(0,0,-config.Movement_speed));
-                if (KeyPressed[1]) Globals.Camera.Move(new Vec3(-config.Movement_speed, 0,0));
-                if (KeyPressed[2]) Globals.Camera.Move(new Vec3(0,0,config.Movement_speed));
-                if (KeyPressed[3]) Globals.Camera.Move(new Vec3(config.Movement_speed, 0,0));
-                if (KeyPressed[4]) Globals.Camera.Move(new Vec3(0, -config.Movement_speed, 0));
-                if (KeyPressed[5]) Globals.Camera.Move(new Vec3(0, config.Movement_speed, 0));
+                    foreach (Object o in objects) image.Update(o); //
+                    frames.Add(image.MapImage());
+                    frameIndex++;
+                }
 
-                foreach (Object o in objects) image.Update(o); //
-                image.MapImage();
+                if(RenderFinished && !WriteFinished && config.IsWrite)
+                {
+                    BinaryWriter writer =new BinaryWriter(File.Open(config.WriteRenderPath, FileMode.Create));
+                    string? dirw = Path.GetDirectoryName(config.WriteRenderPath);
+                    if (!string.IsNullOrEmpty(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                    foreach (byte[] frame in frames)
+                    {
+                        writer.Write(frame.Length);
+                        writer.Write(frame);
+                    }
+                    WriteFinished = true;
+                    writer.Close();
+                }
 
                 Globals.TimeElapsed++;
-                this.Text = $"{Globals.TimeElapsed}, {Globals.TimeElapsed / 60}";
+                this.Text = $"{Globals.TimeElapsed}";
 
+                
 
                 skControl.Invalidate();
+                
+                
+                
+                    
+
+                
+
             };
             timer.Start();
-            //
+            
+            
+            
         }
-
+        
         private void OnPaintSurface(object sender, SKPaintSurfaceEventArgs e)
         {
-
+            
             canvas = e.Surface.Canvas;
             canvas.Clear(SKColors.Black);
-            image.DrawImage(canvas);
+            if (config.PreLoad == false)
+            {
+                SKBitmap map = new SKBitmap(config.Image_res[0], config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
+                System.Runtime.InteropServices.Marshal.Copy(frames[frameIndex - 1], 0, map.GetPixels(), frames[frameIndex - 1].Length);
+                if (frames.Count != 0) image.DrawImage(canvas, map);
+            } 
+            else
+            {
+                if(RenderFinished && config.IsPlayback)
+                {
+                    SKBitmap map = new SKBitmap(config.Image_res[0], config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
+                    System.Runtime.InteropServices.Marshal.Copy(frames[renderFrame], 0, map.GetPixels(), frames[renderFrame].Length);
+                    image.DrawImage(canvas, map);
+                    if(renderFrame < config.FrameAmount - 1) renderFrame++;
+                    if (frames[0] == frames[99])
+                    {
+                        int a = 0;
+                    }
+
+                }
+            }
             
             
         }
@@ -256,7 +367,7 @@ namespace Physics_Engine
         }
         public void OnMouseMove(object sender, MouseEventArgs e)
         {
-
+            if (config.PreLoad) return;
 
             int dx = e.X - (this.Width / 2);
             int dy = e.Y - (this.Height / 2);
@@ -272,6 +383,7 @@ namespace Physics_Engine
         }
         public void OnKeyDown(object sender, KeyEventArgs e)
         {
+            if (config.PreLoad) return;
             if (e.KeyCode == Keys.W)
             {
                 KeyPressed[0] = true;
@@ -300,6 +412,7 @@ namespace Physics_Engine
         }
         public void OnKeyUp(object sender, KeyEventArgs e)
         {
+            if (config.PreLoad) return;
             if (e.KeyCode == Keys.W)
             {
                 KeyPressed[0] = false;

@@ -156,13 +156,12 @@ namespace Physics_Engine
         public Triangle[] triangles { get; set; }
         public int nTriangles { get; set; }
         public double[,] tIndices { get; set; }
-        public Mesh(Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, int[] faces, int[] indices, bool[] onesided, bool convex = true)
+        public Mesh(Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, int[] faces, int[] indices, bool[] onesided, bool imported = false, Vec3[] faceNormals = null, int[] faceNormalIndices = null)
         {
             this.vertices = vertices;
             this.faces = faces;
             this.nfaces = faces.Length;
             this.vertexIndices = indices;
-            this.convex = convex;
             this.attributes = attributes;
             this.onesided= onesided;
             this.shading = shading;
@@ -192,6 +191,7 @@ namespace Physics_Engine
                         tIndices[triIndex, 2] = vi2;
                         triangles[triIndex++] = new Triangle(triangleVerts, atts,sh, onesided[i]);
                         
+                       
                     }
                 start += faces[i];
             }
@@ -420,8 +420,8 @@ namespace Physics_Engine
                 vertices[i].Y = coords[i].Y;
                 vertices[i].Z = coords[i].Z;
             }
-            this.area = (vertices[2] - vertices[0]).Cross(vertices[1] - vertices[0]).Magnitude();
-            this.normal = (vertices[2] - vertices[0]).Cross(vertices[1] - vertices[0]).Normalize();
+            this.area = (vertices[1] - vertices[0]).Cross(vertices[2] - vertices[0]).Magnitude();
+            this.normal = (vertices[1] - vertices[0]).Cross(vertices[2] - vertices[0]).Normalize();
             
             this.onesided = onesided;
             this.attributes = attributes;
@@ -453,7 +453,9 @@ namespace Physics_Engine
                 w2 = w2,
                 o = this
             };
-            
+            Vec3 offsetNormal = r.direction.Dot(normal) < 0 ? normal : 0 - normal;
+            result.point = point + 1e-4 * offsetNormal;
+            result.normal = offsetNormal;
             double R = attributes.colors[0].X * w0 + attributes.colors[1].X * w1 + attributes.colors[2].X * w2;
             double G = attributes.colors[0].Y * w0 + attributes.colors[1].Y * w1 + attributes.colors[2].Y * w2;
             double B = attributes.colors[0].Z * w0 + attributes.colors[1].Z * w1 + attributes.colors[2].Z * w2;

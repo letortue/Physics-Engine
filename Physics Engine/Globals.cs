@@ -10,11 +10,11 @@ namespace Physics_Engine
 {
     public static class Globals
     {
-        public static double[,] CameraData = new double[4,4]
+        public static double[,] CameraData = new double[4, 4]
         {
-            { 1, 0, 0, 10 },
-            { 0, 1, 0, 0 },
-            { 0, 0, 1, -10 },
+            { 1, 0, 0, 1.4 },
+            { 0, 1, 0, 1 },
+            { 0, 0, 1, 1.4 },
             { 0, 0, 0, 1 }
         };
 

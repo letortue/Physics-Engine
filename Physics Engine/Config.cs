@@ -17,6 +17,13 @@ namespace Physics_Engine
         public double Movement_speed { get; set; }
         public double[] BackgroundColor { get; set; }
         public int AntiAliasingRes { get; set; }
+        public bool PreLoad { get; set; }
+        public int FrameAmount { get; set; }
+        public string ReadRenderPath { get; set; }
+        public string WriteRenderPath { get; set; }
+        public bool IsWrite { get; set; }
+        public bool IsRead { get; set; }
+        public bool IsPlayback { get; set; }
 
 
 
