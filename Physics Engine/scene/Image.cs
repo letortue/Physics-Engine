@@ -1,4 +1,5 @@
 ﻿using Accessibility;
+using OpenTK.Graphics.ES11;
 using SkiaSharp;
 using System.Text.Json;
 using static OpenTK.Graphics.OpenGL.GL;
@@ -9,7 +10,7 @@ namespace Physics_Engine
     public class Image
     {
         public Object[] objects;
-        public byte[] pixels;
+        
         public double[] depths;
         SKBitmap bitmap;
         Config config { get; set; }
@@ -19,7 +20,7 @@ namespace Physics_Engine
             config = JsonSerializer.Deserialize<Config>(json)!;
 
             bitmap = new SKBitmap(config.Image_Res[0], config.Image_Res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
-            this.pixels = new byte[config.Image_Res[0] * config.Image_Res[1] * 4];
+            
             this.depths = new double[config.Image_Res[0] * config.Image_Res[1]];
             Array.Fill(depths, double.PositiveInfinity);
 
@@ -53,14 +54,18 @@ namespace Physics_Engine
             Vec3 max = new Vec3(MaxX, MaxY, MaxZ);
             return (min, max);
         }
-        public void DrawImage(SKCanvas canvas)
+        public void DrawImage(SKCanvas canvas, SKBitmap bitmap)
         {
-            System.Runtime.InteropServices.Marshal.Copy(pixels, 0, bitmap.GetPixels(), pixels.Length);
+            
             canvas.DrawBitmap(bitmap, 0, 0);
         }
         public void Update(Object o, double pixelsPerMeter = 50)
         {
-
+            if (o is Mesh mesh)
+            {
+                foreach(Triangle triangle in mesh.triangles) this.Update(triangle, pixelsPerMeter);
+                return;
+            }
             double t = (float)config.Interval / 1000;
             
             for (int j = 0; j < o.vertices.Length; j++)
@@ -79,22 +84,23 @@ namespace Physics_Engine
 
         
 
-        public void MapImage(bool IsAntiAlias = true)
+        public byte[] MapImage(bool IsAntiAlias = true)
         {
-            Array.Clear(pixels, 0, pixels.Length);
+            byte[] pixels = new byte[config.Image_Res[0] * config.Image_Res[1] * 4];
             Array.Fill(depths, double.PositiveInfinity);
             Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
             foreach (Object obj in objects)
             {
-                if (obj is Triangle) HandleTriangle((Triangle) obj, inverse);  
-                if(obj is Mesh) HandleMesh((Mesh) obj, inverse);
+                if (obj is Triangle) HandleTriangle(pixels,(Triangle) obj, inverse);  
+                if(obj is Mesh) HandleMesh(pixels,(Mesh) obj, inverse);
                 
                     
                 
             }
+            return pixels;
         }
         
-        public void HandleMesh(Mesh mesh, Matrix4 inverse)
+        public void HandleMesh(byte[] pixels, Mesh mesh, Matrix4 inverse)
         {
             int i = 0;
             foreach (Triangle t in mesh.triangles)
@@ -105,11 +111,11 @@ namespace Physics_Engine
                 if (viewDir.Dot(t.normal) > 0 && mesh.shading.onesided == true) { i++; continue; }
                 ;
                 i++;
-                HandleTriangle(t, inverse);
+                HandleTriangle(pixels, t, inverse);
 
             }
         }
-        public void HandleTriangle(Triangle t, Matrix4 inverse)
+        public void HandleTriangle(byte[] pixels, Triangle t, Matrix4 inverse)
         {
             
                 Vec3[] vertsproj = new Vec3[t.vertices.Length];
@@ -158,11 +164,11 @@ namespace Physics_Engine
                     Vec3 c1 = colorsClipped[k][1];
                     Vec3 c2 = colorsClipped[k][2];
 
-                    LoopBoundingBox(minX, minY, maxX, maxY, vertices, area, c0, c1, c2, backFacing, t);
+                    LoopBoundingBox(pixels, minX, minY, maxX, maxY, vertices, area, c0, c1, c2, backFacing, t);
 
                 }
         }
-        public void LoopBoundingBox(int minX, int minY, int maxX, int maxY, Vec3[] vertices, double area, Vec3 c0, Vec3 c1, Vec3 c2, bool backFacing, Triangle t)
+        public void LoopBoundingBox(byte[] pixels, int minX, int minY, int maxX, int maxY, Vec3[] vertices, double area, Vec3 c0, Vec3 c1, Vec3 c2, bool backFacing, Triangle t)
         {
             for (int i = minX; i <= maxX; i++)
             {
@@ -177,7 +183,7 @@ namespace Physics_Engine
 
 
                     if (backFacing) { w0 = -w0; w1 = -w1; w2 = -w2; area = -area; }
-                    if (IsInsideTriangle(w0, w1, w2)) ColorPixelTriangle(t, area, w0, w1, w2, c0, c1, c2, vertices, i, j);
+                    if (IsInsideTriangle(w0, w1, w2)) ColorPixelTriangle(pixels, t, area, w0, w1, w2, c0, c1, c2, vertices, i, j);
 
 
                 }
@@ -188,7 +194,7 @@ namespace Physics_Engine
         {
             return (!offScreen && !tooFar && !behind);
         }
-        public void ColorPixelTriangle(Triangle t, double areab, double w0, double w1, double w2, Vec3 c0, Vec3 c1, Vec3 c2, Vec3[] vertices, int i, int j)
+        public void ColorPixelTriangle(byte[] pixels, Triangle t, double areab, double w0, double w1, double w2, Vec3 c0, Vec3 c1, Vec3 c2, Vec3[] vertices, int i, int j)
         {
             double[] opacity = t.attributes.opacity;
 

@@ -15,6 +15,13 @@ namespace Physics_Engine
         public double Clipping_Range { get; set; }
         public double FOV { get; set; }
         public double Movement_Speed { get; set; }
-        
+        public bool PreLoad { get; set; }
+        public int FrameAmount { get; set; }
+        public string ReadRenderPath { get; set; }
+        public string WriteRenderPath { get; set; }
+        public bool IsWrite { get; set; }
+        public bool IsRead { get; set; }
+        public bool IsPlayback { get; set; }
+
     }
 }

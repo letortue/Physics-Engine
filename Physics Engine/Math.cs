@@ -144,7 +144,12 @@ namespace Physics_Engine
         {
             return $"{data[0,0]} {data[0, 1]} {data[0, 2]} {data[0, 3]} {Environment.NewLine} {data[1, 0]} {data[1, 1]} {data[1, 2]} {data[1, 3]} {Environment.NewLine} {data[2, 0]} {data[2, 1]} {data[2, 2]} {data[2, 3]} {Environment.NewLine} {data[3, 0]} {data[3, 1]} {data[3, 2]} {data[3, 3]}";
         }
-
+        public static Matrix4 CreateCameraMatrix(double[,] data)
+        {
+            Matrix4 m = new Matrix4(false);
+            m.data = data;
+            return m;
+        }
         public double this[int i, int j]
         {
             get => data[i, j];

@@ -6,6 +6,7 @@ namespace Physics_Engine
     using SkiaSharp;
     using SkiaSharp.Views.Desktop;
     using System.Collections.Generic;
+    using System.Drawing;
     using System.Drawing.Text;
     using System.Runtime.InteropServices.Marshalling;
     using System.Security.Policy;
@@ -20,11 +21,11 @@ namespace Physics_Engine
         
         private SKControl skControl;
         private bool[] KeyPressed;
-
-
-
-        //private Ball ball1;
-        //private Ball ball2;
+        List<byte[]> frames = new List<byte[]>();
+        int frameIndex = 0;
+        int renderFrame = 0;
+        bool RenderFinished = false;
+        bool WriteFinished = false;
         private Triangle t1;
         private Triangle t2;
         public SKCanvas canvas;
@@ -34,9 +35,6 @@ namespace Physics_Engine
         public Form1()
         {
 
-
-
-            //
             KeyPressed = new bool[6];
             for (int i = 0; i < 4; i++) KeyPressed[i] = false;
             
@@ -62,6 +60,26 @@ namespace Physics_Engine
 
             Controls.Add(skControl);
             //
+
+
+
+
+            string? dir = Path.GetDirectoryName(config.ReadRenderPath);
+
+            if (!string.IsNullOrEmpty(dir) && config.IsRead && config.PreLoad)
+            {
+                RenderFinished = true;
+                BinaryReader reader = new BinaryReader(File.Open(config.ReadRenderPath, FileMode.Open));
+
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                {
+                    int length = reader.ReadInt32();  
+                    byte[] frame = reader.ReadBytes(length); 
+
+                    frames.Add(frame);
+                }
+                reader.Close();
+            }
 
 
 
@@ -225,8 +243,20 @@ namespace Physics_Engine
             
 
             Mesh cube = new Mesh(vertices, atts, shading, normals, faces, indices);
-            Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj");
-            Console.WriteLine(import.nTriangles);
+            VertexAttributes import_attributes = new VertexAttributes
+            {
+                velocity = [new Vec3(0,0,0)],
+                acceleration = [new Vec3(0,0,-0.1)],
+                opacity = [255],
+                colors = [new Vec3(0,255,255)]
+
+            };
+            ShadingAttributes import_shading = new ShadingAttributes
+            {
+                onesided = false
+            };
+            Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj",import_attributes, import_shading);
+            
             Object[] objects = [import];
             
             image = new Image(objects);
@@ -236,20 +266,44 @@ namespace Physics_Engine
             Timer timer = new Timer();
             
             timer.Interval = config.Interval;
+             
             timer.Tick += (s, e) =>
             {
+                if ((frameIndex >= config.FrameAmount) && config.PreLoad) RenderFinished = true;
+                if (!RenderFinished)
+                {
+                    if (!config.PreLoad)
+                    {
+                        if (KeyPressed[0]) Globals.Camera.Move(new Vec3(0, 0, -config.Movement_Speed));
+                        if (KeyPressed[1]) Globals.Camera.Move(new Vec3(-config.Movement_Speed, 0, 0));
+                        if (KeyPressed[2]) Globals.Camera.Move(new Vec3(0, 0, config.Movement_Speed));
+                        if (KeyPressed[3]) Globals.Camera.Move(new Vec3(config.Movement_Speed, 0, 0));
+                        if (KeyPressed[4]) Globals.Camera.Move(new Vec3(0, -config.Movement_Speed, 0));
+                        if (KeyPressed[5]) Globals.Camera.Move(new Vec3(0, config.Movement_Speed, 0));
+                    }
 
-                if (KeyPressed[0]) Globals.Camera.Move(new Vec3(0,0,-config.Movement_Speed));
-                if (KeyPressed[1]) Globals.Camera.Move(new Vec3(-config.Movement_Speed, 0,0));
-                if (KeyPressed[2]) Globals.Camera.Move(new Vec3(0,0,config.Movement_Speed));
-                if (KeyPressed[3]) Globals.Camera.Move(new Vec3(config.Movement_Speed, 0,0));
-                if (KeyPressed[4]) Globals.Camera.Move(new Vec3(0, -config.Movement_Speed, 0));
-                if (KeyPressed[5]) Globals.Camera.Move(new Vec3(0, config.Movement_Speed, 0));
-                
-                image.Update(t1, pixelsPerMeter);  //
-                image.Update(t2, pixelsPerMeter); //
-                image.MapImage();
 
+                    foreach (Object o in objects) image.Update(o); //
+                    frames.Add(image.MapImage());
+                    frameIndex++;
+                }
+
+                if (RenderFinished && !WriteFinished && config.IsWrite)
+                {
+                    BinaryWriter writer = new BinaryWriter(File.Open(config.WriteRenderPath, FileMode.Create));
+                    string? dirw = Path.GetDirectoryName(config.WriteRenderPath);
+                    if (!string.IsNullOrEmpty(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                    foreach (byte[] frame in frames)
+                    {
+                        writer.Write(frame.Length);
+                        writer.Write(frame);
+                    }
+                    WriteFinished = true;
+                    writer.Close();
+                }
                 Globals.timeElapsed++;
                 
                 this.Text = $"{Globals.timeElapsed}, {Globals.timeElapsed / 60}";
@@ -266,9 +320,33 @@ namespace Physics_Engine
 
             canvas = e.Surface.Canvas;
             canvas.Clear(SKColors.Black);
-            image.DrawImage(canvas);
-            
-            
+            if (config.PreLoad == false)
+            {
+                SKBitmap map = new SKBitmap(config.Image_Res[0], config.Image_Res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
+                if (frames.Count != 0)
+                {
+                    System.Runtime.InteropServices.Marshal.Copy(frames[frameIndex - 1], 0, map.GetPixels(), frames[frameIndex - 1].Length);
+                    image.DrawImage(canvas, map);
+                }
+                    
+            }
+            else
+            {
+                if (RenderFinished && config.IsPlayback)
+                {
+                    SKBitmap map = new SKBitmap(config.Image_Res[0], config.Image_Res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
+                    System.Runtime.InteropServices.Marshal.Copy(frames[renderFrame], 0, map.GetPixels(), frames[renderFrame].Length);
+                    image.DrawImage(canvas, map);
+                    if (renderFrame < config.FrameAmount - 1) renderFrame++;
+                    if (frames[0] == frames[99])
+                    {
+                        int a = 0;
+                    }
+
+                }
+            }
+
+
         }
 
         private void Form1_Load(object sender, EventArgs e)

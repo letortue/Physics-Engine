@@ -9,7 +9,15 @@ namespace Physics_Engine
 {
     public static class Globals
     {
-        public static Camera Camera = new Camera();
+        public static double[,] CameraData = new double[4, 4]
+        {
+            { 1, 0, 0, 1.4 },
+            { 0, 1, 0, 1 },
+            { 0, 0, 1, 2.8},
+            { 0, 0, 0, 1 }
+        };
+
+        public static Camera Camera = new Camera(Matrix4.CreateCameraMatrix(CameraData));
         public static int timeElapsed = 0;
     }
 }
