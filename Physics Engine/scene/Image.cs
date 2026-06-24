@@ -10,11 +10,11 @@ namespace Physics_Engine
     public class Image
     {
         public Object[] objects;
-        
+        public Light[] lights;
         public double[] depths;
         SKBitmap bitmap;
         Config config { get; set; }
-        public Image(Object[] objects)
+        public Image(Object[] objects, Light[] lights)
         {
             string json = File.ReadAllText("config.json");
             config = JsonSerializer.Deserialize<Config>(json)!;
@@ -26,7 +26,7 @@ namespace Physics_Engine
 
 
             this.objects = objects;
-
+            this.lights = lights;
             
             MapImage();
             
@@ -102,15 +102,15 @@ namespace Physics_Engine
         
         public void HandleMesh(byte[] pixels, Mesh mesh, Matrix4 inverse)
         {
-            int i = 0;
+            
             foreach (Triangle t in mesh.triangles)
             {
                 Vec3 centroid = (t.vertices[0] + t.vertices[1] + t.vertices[2]) / 3.0;
                 Vec3 viewDir = (centroid - new Vec3(Globals.Camera.matrix[0, 3], Globals.Camera.matrix[1, 3], Globals.Camera.matrix[2, 3])).Normalize();
 
-                if (viewDir.Dot(t.normal) > 0 && mesh.shading.onesided == true) { i++; continue; }
+                if (viewDir.Dot(t.normal) > 0 && mesh.shading.onesided == true)  continue; 
                 ;
-                i++;
+                
                 HandleTriangle(pixels, t, inverse);
 
             }
@@ -203,23 +203,43 @@ namespace Physics_Engine
             w2 /= areab;
 
             double oneOverZ = w0 / vertices[0].Z + w1 / vertices[1].Z + w2 / vertices[2].Z;
-            double r = (w0 * c0.X / vertices[0].Z + w1 * c1.X / vertices[1].Z + w2 * c2.X / vertices[2].Z) / oneOverZ;
-            double g = (w0 * c0.Y / vertices[0].Z + w1 * c1.Y / vertices[1].Z + w2 * c2.Y / vertices[2].Z) / oneOverZ;
-            double b = (w0 * c0.Z / vertices[0].Z + w1 * c1.Z / vertices[1].Z + w2 * c2.Z / vertices[2].Z) / oneOverZ;
-            double o = (w0 * opacity[0] / vertices[0].Z + w1 * opacity[1] / vertices[1].Z + w2 * opacity[2] / vertices[2].Z) / oneOverZ;
+            
+            double r = Interpolate(new Vec3(c0.X, c1.X, c2.X), w0, w1,w2, oneOverZ, vertices);
+            double g = Interpolate(new Vec3(c0.Y, c1.Y, c2.Y), w0, w1,w2, oneOverZ, vertices);
+            double b = Interpolate(new Vec3(c0.Z, c1.Z, c2.Z), w0, w1,w2, oneOverZ, vertices);
+            double o = Interpolate(new Vec3(opacity[0], opacity[1], opacity[2]), w0, w1,w2, oneOverZ, vertices);
+            
 
             double z = 1.0 / oneOverZ;
             //if (z < 0) z = -z;
 
             if (z <= depths[j * config.Image_Res[0] + i])
             {
+                double intensity = GetTotalLightIntensity(t, t.normal);
                 depths[j * config.Image_Res[0] + i] = z;
                 int index = (j * config.Image_Res[0] + i) * 4;
-                pixels[index + 0] = (byte)(b * o / 255);
-                pixels[index + 1] = (byte)(g * o / 255);
-                pixels[index + 2] = (byte)(r * o / 255);
+                pixels[index + 0] = (byte)( b * o / 255);
+                pixels[index + 1] = (byte)( g * o / 255);
+                pixels[index + 2] = (byte)( r * o / 255);
                 pixels[index + 3] = (byte)(o);
             }
+        }
+        public double GetTotalLightIntensity(Object o, Vec3 normal)
+        {
+            double total = 0;
+            foreach(Light light in lights)
+            {
+                if(o.shading.lambertian)
+                {
+                    total += light.GetIntensity(normal);
+                }
+     
+            }
+            return Math.Clamp(total, 0, 1);
+        }
+        public double Interpolate(Vec3 attribute, double w0, double w1, double w2, double oneOverZ, Vec3[] vertices)
+        {
+            return (w0 * attribute.X / vertices[0].Z + w1 * attribute.Y / vertices[1].Z + w2 * attribute.Z / vertices[2].Z) / oneOverZ;
         }
         public bool IsInsideTriangle(double w0, double w1, double w2)
         {

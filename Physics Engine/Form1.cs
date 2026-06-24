@@ -198,8 +198,8 @@ namespace Physics_Engine
             double[] opacities = new double[24];
             for (int i = 0; i < 24; i++)
             {
-                velocities[i] = new Vec3(0, 0.01, 0);
-                accelerations[i] = new Vec3(0, 0.1, 0);
+                velocities[i] = new Vec3(0, 0.00, 0);
+                accelerations[i] = new Vec3(0, 0.0, 0);
                 opacities[i] = 255;
             }
             Vec3[] normals =
@@ -238,7 +238,8 @@ namespace Physics_Engine
             };
             ShadingAttributes shading = new ShadingAttributes
             {
-                onesided = false
+                onesided = true,
+                lambertian = true
             };
             
 
@@ -248,18 +249,21 @@ namespace Physics_Engine
                 velocity = [new Vec3(0,0,0)],
                 acceleration = [new Vec3(0,0,-0.1)],
                 opacity = [255],
-                colors = [new Vec3(0,255,255)]
+                colors = [new Vec3(255,255,255)]
 
             };
             ShadingAttributes import_shading = new ShadingAttributes
             {
-                onesided = false
+                onesided = false,
+                lambertian = true,
+                
             };
             Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj",import_attributes, import_shading);
             
-            Object[] objects = [import];
-            
-            image = new Image(objects);
+            Object[] objects = [cube];
+            Light[] lights = [new DistantLight(new Vec3(1,0,-1), 500)];
+
+            image = new Image(objects, lights);
 
             //
             int pixelsPerMeter = 10;
@@ -338,10 +342,8 @@ namespace Physics_Engine
                     System.Runtime.InteropServices.Marshal.Copy(frames[renderFrame], 0, map.GetPixels(), frames[renderFrame].Length);
                     image.DrawImage(canvas, map);
                     if (renderFrame < config.FrameAmount - 1) renderFrame++;
-                    if (frames[0] == frames[99])
-                    {
-                        int a = 0;
-                    }
+                    else if(config.IsRepeat)renderFrame = 0;
+                    
 
                 }
             }
@@ -364,7 +366,9 @@ namespace Physics_Engine
         public void OnMouseMove(object sender, MouseEventArgs e)
         {
 
-
+            if(config.PreLoad) return;
+            
+            
             int dx = e.X - (this.Width / 2);
             int dy = e.Y - (this.Height / 2);
             //Console.WriteLine(dx);

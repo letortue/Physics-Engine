@@ -22,6 +22,7 @@ namespace Physics_Engine
     public struct ShadingAttributes
     {
         public Vec3[] normal;
+        public bool lambertian;
         public bool onesided;
     }
     public abstract class Object
@@ -33,9 +34,38 @@ namespace Physics_Engine
     }
 
 
+    public abstract class Light
+    {
+        
+        public abstract Vec3 GetDirection(Vec3 point);
+        public abstract double GetIntensity(Vec3 normal);
+    }
 
+    public class DistantLight : Light
+    {
+        Vec3 direction;
+        Vec3 negativeDir;
+        double intensity;
+        Config config { get; set; }
 
+        public DistantLight(Vec3 direction, double intensity)
+        {
+            string json = File.ReadAllText("config.json");
+            config = JsonSerializer.Deserialize<Config>(json)!;
+            this.direction = direction.Normalize();
+            this.intensity = intensity;
+            negativeDir = new Vec3(0-this.direction.X, 0-this.direction.Y, 0-this.direction.Z);
+        }
+        public override Vec3 GetDirection(Vec3 point)
+        {
+            return this.direction;
+        }
+        public override double GetIntensity(Vec3 normal)
+        {
 
+            return Math.Max(0,(this.intensity / config.LightDampener) * normal.Dot(negativeDir)) ;
+        }
+    }
     public class Ball : Object
     {
         public double radius { get; set; }
@@ -103,15 +133,16 @@ namespace Physics_Engine
                 for (int j = 0; (j + 2) < faces[i]; j++)
                 {
                     int vi0 = vertexIndices[start]; int vi1 = vertexIndices[start + j + 1]; int vi2 = vertexIndices[start + j + 2];
-                    Vec3[] triangleVerts = { vertices[vi0], vertices[vi1], vertices[vi2] };
-                    VertexAttributes atts = TVAtts(attributes, vi0, vi1, vi2);
+                    Vec3[] triangleVerts = { vertices[vi2], vertices[vi1], vertices[vi0] };
+                    VertexAttributes atts = TVAtts(attributes, vi2, vi1, vi0);
                     ShadingAttributes sh = TShAtts(shading, i);
-                    tIndices[triIndex, 0] = vi0;
+                    tIndices[triIndex, 0] = vi2;
                     tIndices[triIndex, 1] = vi1;
-                    tIndices[triIndex, 2] = vi2;
+                    tIndices[triIndex, 2] = vi0;
                     Vec3 edge1 = vertices[vi1] - vertices[vi0];
                     Vec3 edge2 = vertices[vi2] - vertices[vi0];
-                    Vec3 faceNormal = edge1.Cross(edge2).Normalize();
+                    Vec3 faceNormal = edge2.Cross(edge1).Normalize();
+                    
                     triangles.Add(new Triangle(triangleVerts, faceNormal, atts, sh));
                     
 
