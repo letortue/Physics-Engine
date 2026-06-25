@@ -105,7 +105,7 @@ namespace Physics_Engine
         public double[,] tIndices { get; set; }
         public Vec3[] normals { get; set; }
         
-        public Mesh(Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, Vec3[] normals, int[] faces, int[] indices)
+        public Mesh(Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, Vec3[] normals, int[] faces, int[] indices, bool clockwiseWinding = true)
         {
             this.vertices = vertices;
             this.faces = faces;
@@ -132,22 +132,27 @@ namespace Physics_Engine
             {
                 for (int j = 0; (j + 2) < faces[i]; j++)
                 {
-                    int vi0 = vertexIndices[start]; int vi1 = vertexIndices[start + j + 1]; int vi2 = vertexIndices[start + j + 2];
-                    Vec3[] triangleVerts = { vertices[vi2], vertices[vi1], vertices[vi0] };
-                    VertexAttributes atts = TVAtts(attributes, vi2, vi1, vi0);
+                    int vi0, vi1, vi2;
+                    if (!clockwiseWinding) { vi2 = vertexIndices[start]; vi1 = vertexIndices[start + j + 1];  vi0 = vertexIndices[start + j + 2]; }
+                    else {  vi0 = vertexIndices[start];  vi1 = vertexIndices[start + j + 1]; vi2 = vertexIndices[start + j + 2]; }
+
+                    Vec3[] triangleVerts = { vertices[vi0], vertices[vi1], vertices[vi2] };
+                    VertexAttributes atts = TVAtts(attributes, vi0, vi1, vi2);
                     ShadingAttributes sh = TShAtts(shading, i);
-                    tIndices[triIndex, 0] = vi2;
+                    tIndices[triIndex, 0] = vi0;
                     tIndices[triIndex, 1] = vi1;
-                    tIndices[triIndex, 2] = vi0;
+                    tIndices[triIndex, 2] = vi2;
                     Vec3 edge1 = vertices[vi1] - vertices[vi0];
                     Vec3 edge2 = vertices[vi2] - vertices[vi0];
                     Vec3 faceNormal = edge2.Cross(edge1).Normalize();
+                    //Vec3 faceNormal = normals[triIndex];
                     
                     triangles.Add(new Triangle(triangleVerts, faceNormal, atts, sh));
                     
 
                 }
                 start += faces[i];
+                triIndex++;
             }
             this.triangles = triangles.ToArray();
         }

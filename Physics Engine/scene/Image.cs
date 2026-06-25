@@ -182,7 +182,8 @@ namespace Physics_Engine
                     double w2 = BarycentricCoordinate(vertices[0], vertices[1], p);
 
 
-                    if (backFacing) { w0 = -w0; w1 = -w1; w2 = -w2; area = -area; }
+                    if (area < 0)
+                        continue;
                     if (IsInsideTriangle(w0, w1, w2)) ColorPixelTriangle(pixels, t, area, w0, w1, w2, c0, c1, c2, vertices, i, j);
 
 
@@ -201,7 +202,7 @@ namespace Physics_Engine
             w0 /= areab;
             w1 /= areab;
             w2 /= areab;
-
+            
             double oneOverZ = w0 / vertices[0].Z + w1 / vertices[1].Z + w2 / vertices[2].Z;
             
             double r = Interpolate(new Vec3(c0.X, c1.X, c2.X), w0, w1,w2, oneOverZ, vertices);
@@ -211,16 +212,22 @@ namespace Physics_Engine
             
 
             double z = 1.0 / oneOverZ;
+            if (i == config.Image_Res[0] / 2 && j == config.Image_Res[1] / 2 && Globals.timeElapsed > 100 && z < 0)
+            {
+                int a = 0;
+            }
             //if (z < 0) z = -z;
 
+            if (i == config.Image_Res[0] / 2 && j == config.Image_Res[1] / 2) Console.WriteLine($"z: {z} depth: {depths[j * config.Image_Res[0] + i]} 1st vertex: {t.vertices[0].Z}{t.vertices[1].Z}{t.vertices[2].Z} ");
             if (z <= depths[j * config.Image_Res[0] + i])
             {
+                
                 double intensity = GetTotalLightIntensity(t, t.normal);
                 depths[j * config.Image_Res[0] + i] = z;
                 int index = (j * config.Image_Res[0] + i) * 4;
-                pixels[index + 0] = (byte)( b * o / 255);
-                pixels[index + 1] = (byte)( g * o / 255);
-                pixels[index + 2] = (byte)( r * o / 255);
+                pixels[index + 0] = (byte)(intensity * b * o / 255);
+                pixels[index + 1] = (byte)(intensity * g * o / 255);
+                pixels[index + 2] = (byte)(intensity *  r * o / 255);
                 pixels[index + 3] = (byte)(o);
             }
         }

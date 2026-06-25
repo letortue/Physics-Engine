@@ -238,7 +238,7 @@ namespace Physics_Engine
             };
             ShadingAttributes shading = new ShadingAttributes
             {
-                onesided = true,
+                onesided = false,
                 lambertian = true
             };
             
@@ -247,7 +247,7 @@ namespace Physics_Engine
             VertexAttributes import_attributes = new VertexAttributes
             {
                 velocity = [new Vec3(0,0,0)],
-                acceleration = [new Vec3(0,0,-0.1)],
+                acceleration = [new Vec3(0,0,0)],
                 opacity = [255],
                 colors = [new Vec3(255,255,255)]
 
@@ -258,10 +258,10 @@ namespace Physics_Engine
                 lambertian = true,
                 
             };
-            Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj",import_attributes, import_shading);
+            Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj",import_attributes, import_shading, false);
             
-            Object[] objects = [cube];
-            Light[] lights = [new DistantLight(new Vec3(1,0,-1), 500)];
+            Object[] objects = [import];
+            Light[] lights = [new DistantLight(new Vec3(1,1,-1), 500), new DistantLight(new Vec3(-1, -1, 1), 500)];
 
             image = new Image(objects, lights);
 
