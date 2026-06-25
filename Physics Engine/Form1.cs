@@ -247,7 +247,7 @@ namespace Physics_Engine
                 refIndex = 1
             };
             Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj", import_attributes, import_shading);
-            Object[] objects = { ball1, ball2, plane1 };
+            Object[] objects = { import };
 
 
             image = new Image(objects, lights);
@@ -342,10 +342,7 @@ namespace Physics_Engine
                     System.Runtime.InteropServices.Marshal.Copy(frames[renderFrame], 0, map.GetPixels(), frames[renderFrame].Length);
                     image.DrawImage(canvas, map);
                     if(renderFrame < config.FrameAmount - 1) renderFrame++;
-                    if (frames[0] == frames[99])
-                    {
-                        int a = 0;
-                    }
+                    
 
                 }
             }

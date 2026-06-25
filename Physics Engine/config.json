@@ -11,7 +11,7 @@
   "BackgroundColor": [ 135, 206, 235 ],
   "AntiAliasingRes": 2,
   "PreLoad": true,
-  "FrameAmount": 100,
+  "FrameAmount": 10,
   "ReadRenderPath": "C:\\Users\\Marek\\source\\repos\\Physics Engine\\Physics Engine\\animation.bin",
   "WriteRenderPath": "C:\\Users\\Marek\\source\\repos\\Physics Engine\\Physics Engine\\animation.bin",
   "IsWrite": false,
