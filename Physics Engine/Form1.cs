@@ -49,7 +49,7 @@ namespace Physics_Engine
 
             string? dir = Path.GetDirectoryName(config.ReadRenderPath);
 
-            if(!string.IsNullOrEmpty(dir) && config.IsRead)
+            if(!string.IsNullOrEmpty(dir) && config.IsRead && config.PreLoad)
             {
                 RenderFinished = true;
                 BinaryReader reader = new BinaryReader(File.Open(config.ReadRenderPath, FileMode.Open));
@@ -183,7 +183,7 @@ namespace Physics_Engine
                 colors = colors,
                 velocity = velocities,
                 acceleration = accelerations,
-                opacity = opacities,
+                
                 albedo = albedo,
                 textureT = new double[24],
                 textureV = new double[24]
@@ -209,7 +209,7 @@ namespace Physics_Engine
                 colors = c,
                 velocity = v,
                 acceleration = a,
-                opacity = o,
+                
                 
             };
             Vec3 CheckerBoard(Vec3 point)
@@ -233,7 +233,7 @@ namespace Physics_Engine
                 acceleration = [new Vec3(0, 0, 0)],
                 textureT = [0],
                 textureV = [0],
-                opacity = [255]
+                
             };
             ShadingAttributes import_shading = new ShadingAttributes
             {
@@ -247,7 +247,7 @@ namespace Physics_Engine
                 refIndex = 1
             };
             Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj", import_attributes, import_shading);
-            Object[] objects = { import };
+            Object[] objects = { cube };
 
 
             image = new Image(objects, lights);
@@ -331,7 +331,7 @@ namespace Physics_Engine
             if (config.PreLoad == false)
             {
                 SKBitmap map = new SKBitmap(config.Image_res[0], config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
-                System.Runtime.InteropServices.Marshal.Copy(frames[frameIndex - 1], 0, map.GetPixels(), frames[frameIndex - 1].Length);
+                if (frames.Count != 0) System.Runtime.InteropServices.Marshal.Copy(frames[frameIndex - 1], 0, map.GetPixels(), frames[frameIndex - 1].Length);
                 if (frames.Count != 0) image.DrawImage(canvas, map);
             } 
             else

@@ -39,7 +39,6 @@ namespace Physics_Engine
         public Vec3[] acceleration;
         public double[] textureT;
         public double[] textureV;
-        public double[] opacity;
     }
     public struct ShadingAttributes
     {
@@ -203,7 +202,7 @@ namespace Physics_Engine
             atts.colors = [attributes.colors[vi0], attributes.colors[vi1], attributes.colors[vi2]];
             atts.velocity = [attributes.velocity[vi0], attributes.velocity[vi1], attributes.velocity[vi2]];
             atts.acceleration = [attributes.acceleration[vi0], attributes.acceleration[vi1], attributes.acceleration[vi2]];
-            atts.opacity = [attributes.opacity[vi0], attributes.opacity[vi1], attributes.opacity[vi2]];
+            
             atts.albedo = [attributes.albedo[vi0], attributes.albedo[vi1], attributes.albedo[vi2]];
             atts.textureT = [attributes.textureT[vi0], attributes.textureT[vi1], attributes.textureT[vi2]];
             atts.textureV = [attributes.textureV[vi0], attributes.textureV[vi1], attributes.textureV[vi2]];

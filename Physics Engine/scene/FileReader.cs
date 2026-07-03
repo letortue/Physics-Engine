@@ -59,7 +59,7 @@
                 acceleration[i] = attributes.acceleration[0];
                 textureT[i] = attributes.textureT[0];
                 textureV[i] = attributes.textureV[0];
-                opacity[i] = attributes.opacity[0];
+                
 
             }
             attributes.colors = colors;
@@ -68,7 +68,7 @@
             attributes.acceleration = acceleration;
             attributes.textureT = textureT;
             attributes.textureV = textureV;
-            attributes.opacity = opacity;
+            
 
             Vec3[] albedoShading = new Vec3[faces.Count];
             bool[] facing_ratio = new bool[faces.Count];
