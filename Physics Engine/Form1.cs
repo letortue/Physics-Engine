@@ -117,7 +117,7 @@ namespace Physics_Engine
             VertexAttributes ats = new VertexAttributes()
             {
                 colors = cs,
-                opacity = op,
+                
                 velocity = velo,
                 acceleration = acc
             };
@@ -232,7 +232,7 @@ namespace Physics_Engine
                 colors = colors,
                 velocity = velocities,
                 acceleration = accelerations,
-                opacity = opacities,
+                
                 
 
             };
@@ -248,7 +248,7 @@ namespace Physics_Engine
             {
                 velocity = [new Vec3(0,0,0)],
                 acceleration = [new Vec3(0,0,0)],
-                opacity = [255],
+                
                 colors = [new Vec3(255,255,255)]
 
             };

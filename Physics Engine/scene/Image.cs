@@ -197,7 +197,7 @@ namespace Physics_Engine
         }
         public void ColorPixelTriangle(byte[] pixels, Triangle t, double areab, double w0, double w1, double w2, Vec3 c0, Vec3 c1, Vec3 c2, Vec3[] vertices, int i, int j)
         {
-            double[] opacity = t.attributes.opacity;
+            
 
             w0 /= areab;
             w1 /= areab;
@@ -208,7 +208,7 @@ namespace Physics_Engine
             double r = Interpolate(new Vec3(c0.X, c1.X, c2.X), w0, w1,w2, oneOverZ, vertices);
             double g = Interpolate(new Vec3(c0.Y, c1.Y, c2.Y), w0, w1,w2, oneOverZ, vertices);
             double b = Interpolate(new Vec3(c0.Z, c1.Z, c2.Z), w0, w1,w2, oneOverZ, vertices);
-            double o = Interpolate(new Vec3(opacity[0], opacity[1], opacity[2]), w0, w1,w2, oneOverZ, vertices);
+            
             
 
             double z = 1.0 / oneOverZ;
@@ -225,10 +225,10 @@ namespace Physics_Engine
                 double intensity = GetTotalLightIntensity(t, t.normal);
                 depths[j * config.Image_Res[0] + i] = z;
                 int index = (j * config.Image_Res[0] + i) * 4;
-                pixels[index + 0] = (byte)(intensity * b * o / 255);
-                pixels[index + 1] = (byte)(intensity * g * o / 255);
-                pixels[index + 2] = (byte)(intensity *  r * o / 255);
-                pixels[index + 3] = (byte)(o);
+                pixels[index + 0] = (byte)(intensity * b );
+                pixels[index + 1] = (byte)(intensity * g );
+                pixels[index + 2] = (byte)(intensity *  r );
+                pixels[index + 3] = (byte)(255);
             }
         }
         public double GetTotalLightIntensity(Object o, Vec3 normal)

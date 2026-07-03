@@ -56,13 +56,13 @@
                 colors[i] = attributes.colors[0];
                 velocity[i] = attributes.velocity[0];
                 acceleration[i] = attributes.acceleration[0];
-                opacity[i] = attributes.opacity[0];
+                
 
             }
             attributes.colors = colors;
             attributes.velocity = velocity;
             attributes.acceleration = acceleration;
-            attributes.opacity = opacity;
+            
 
             shading.normal = faceNormals.ToArray();
             
