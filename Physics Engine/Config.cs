@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 namespace Physics_Engine
 {
-    internal class Config
+    public class Config
     {
         public int[] Image_res {get; set;}
         public int[] Canvas_res {get; set;}

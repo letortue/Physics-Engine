@@ -142,7 +142,7 @@ namespace Physics_Engine
         
         public VertexAttributes attributes;
         public ShadingAttributes shading;
-        public abstract HitResult GetIntersectionPoint(Ray r);
+        
     }
 
 
@@ -216,19 +216,7 @@ namespace Physics_Engine
             
             return attributes;
         }
-        public override HitResult GetIntersectionPoint(Ray r)
-        {
-            HitResult closest = new HitResult { hit = false };
-            foreach (Triangle tri in triangles)
-            {
-                HitResult result = tri.GetIntersectionPoint(r);
-                if (result.hit && (!closest.hit || result.t < closest.t))
-                    closest = result;
-            }
-            return closest;
-            // onesided bug stems from the fact that some faces' vertices are defined in the wrong order -
-            // the order has to be clockwise according to the original coordinate system
-        }
+        
     }
 
     public class Ball : Object
@@ -247,58 +235,7 @@ namespace Physics_Engine
 
         }
 
-        public override HitResult GetIntersectionPoint(Ray r)
-        {
-
-            Vec3 L = r.origin - this.vertices[0];
-            Vec3 dir = r.direction;
-            HitResult result = new HitResult();
-            result.color = this.attributes.colors[0];
-            
-            result.o = this;
-            bool intersects = Maths.SolveQuadratic(dir.Dot(dir), 2 * L.Dot(dir), L.Dot(L) - Math.Pow(this.radius, 2), out double? t1, out double? t2);
-            if (!intersects)
-            {
-
-                result.hit = false;
-
-                return result;
-            }
-            else
-            {
-                result.hit = true;
-                if (t2 == null)
-                {
-
-                    result.point = r.origin + (double)t1 * dir;
-                    result.albedo = this.shading.textureFunc is not null ? this.shading.textureFunc(result.point) : this.shading.albedo[0];
-                    result.normal = (result.point - this.vertices[0]).Normalize();
-                    result.t = (double) t1;
-                    return result;
-                }
-                else
-                {
-                    if(t1< t2)
-                    {
-                        result.point = r.origin + (double)t1 * dir;
-                        result.albedo = this.shading.textureFunc is not null ? this.shading.textureFunc(result.point) : this.shading.albedo[0];
-                        result.normal = (result.point - this.vertices[0]).Normalize();
-                        result.t = (double)t1;
-                    }
-                    else
-                    {
-                        result.point = r.origin + (double)t2 * dir;
-                        result.albedo = this.shading.textureFunc is not null ? this.shading.textureFunc(result.point) : this.shading.albedo[0];
-                        result.normal = (result.point - this.vertices[0]).Normalize();
-                        result.t = (double)t2;
-                    }
-
-                    return result;
-                }
-
-
-            }
-        }
+        
 
 
     }
@@ -317,31 +254,14 @@ namespace Physics_Engine
             this.point = point;
             this.shading = shading;
         }
-        public override HitResult GetIntersectionPoint(Ray r)
-        {
-            HitResult result = new HitResult();
-            double denom = r.direction.Dot(normal);
-            if (Math.Abs(denom) < 1e-6) { result.hit = false; return result; }
-            result.t = (point - r.origin).Dot(normal) / denom;
-            if (result.t < 0) { result.hit = false; return result; }
-            result.normal = normal;
-            result.o = this;
-            result.hit = true;
-            result.point = r.origin + (result.t * r.direction);
-            result.color = this.attributes.colors[0];
-            result.albedo = this.shading.textureFunc is not null ? this.shading.textureFunc(result.point) : this.shading.albedo[0];
-            
-            
-            return result;
-            
-        }
+        
     }
     public class Disk : Object
     {
         public Vec3 normal { get; set; }
         public double radius { get; set; }
         public double square_radius { get; set; }
-        private Plane p;
+        public Plane p;
 
         public Disk(Vec3 center, VertexAttributes attributes,ShadingAttributes shading, Vec3 normal, double radius)
         {
@@ -355,50 +275,7 @@ namespace Physics_Engine
             p = new Plane(attributes, shading, normal, this.vertices[0]);
 
         }
-        public override HitResult GetIntersectionPoint(Ray r)
-        {
-            
-
-            HitResult result = p.GetIntersectionPoint(r);
-            double denom = r.direction.Dot(normal);
-            if (Math.Abs(denom) < 1e-6) { result.hit = false; return result; }
-            result.albedo = this.shading.textureFunc is not null ? this.shading.textureFunc(result.point) : this.shading.albedo[0];
-            result.color = this.attributes.colors[0];
-            result.normal = normal;
-            result.o = this;
-            result.textureT = result.point.X;
-            result.textureV = result.point.Y;
-            if (!result.hit)
-            {
-                return result;
-            }
-
-            Vec3 v = result.point - this.vertices[0];
-            double d2 = v.Dot(v);
-
-            if (d2 <= square_radius)
-            {
-                
-                result.t = (this.vertices[0] - r.origin).Dot(normal) / denom;
-                if (result.t < 0) { result.hit = false; return result; }
-                result.normal = normal;
-                result.hit = true;
-                result.point = r.origin + (result.t * r.direction);
-                return result;
-            }
-            else
-            {
-                result.hit = false;
-                return result;
-            }
-
-
-
-
-
-
-
-        }
+        
     }
     
     public class Triangle : Object
@@ -431,68 +308,7 @@ namespace Physics_Engine
 
         }
 
-        public override HitResult GetIntersectionPoint(Ray r)
-        {
-            Vec3 tuv = Maths.CramersRule(r, this.vertices);
-            double w0 = 1 - tuv[1] - tuv[2];
-            double w1 = tuv[1];
-            double w2 = tuv[2];
-            if (w0 < 0 || w1 < 0 || w2 < 0 || w0 > 1 || w1 > 1 || w2 > 1) { return new HitResult { hit = false }; }
-
-            if ((onesided && normal.Dot(r.direction) > 0) || Math.Abs(normal.Dot(r.direction)) < 1e-6 || tuv[0] < 0) return new HitResult { hit = false };
-            
-            Vec3 point = r.origin + tuv[0] * r.direction;
-            HitResult result = new HitResult
-            {
-                hit = true,
-                point = point,
-                normal = normal,
-                t = tuv[0],
-                w0 = w0,
-                w1 = w1,
-                w2 = w2,
-                o = this
-            };
-            Vec3 offsetNormal = r.direction.Dot(normal) < 0 ? normal : 0 - normal;
-            result.point = point + 1e-4 * offsetNormal;
-            result.normal = offsetNormal;
-            double R = attributes.colors[0].X * w0 + attributes.colors[1].X * w1 + attributes.colors[2].X * w2;
-            double G = attributes.colors[0].Y * w0 + attributes.colors[1].Y * w1 + attributes.colors[2].Y * w2;
-            double B = attributes.colors[0].Z * w0 + attributes.colors[1].Z * w1 + attributes.colors[2].Z * w2;
-            result.color.X = R; result.color.Y = G; result.color.Z = B;
-            
-            if (this.shading.textureFunc is not null)
-            {
-                result.textureT = attributes.textureT[0] * w0 + attributes.textureT[1] * w1 + attributes.textureT[2] * w2;
-                result.textureV = attributes.textureV[0] * w0 + attributes.textureV[1] * w1 + attributes.textureV[2] * w2;
-                result.albedo = this.shading.textureFunc(result.point);
-                return result;
-            }
-
-            
-            if (shading.isInterpolatedAlbedo)
-            {
-                double albedoR = attributes.albedo[0].X * w0 + attributes.albedo[1].X * w1 + attributes.albedo[2].X * w2;
-                double albedoG = attributes.albedo[0].Y * w0 + attributes.albedo[1].Y * w1 + attributes.albedo[2].Y * w2;
-                double albedoB = attributes.albedo[0].Z * w0 + attributes.albedo[1].Z * w1 + attributes.albedo[2].Z * w2;
-                result.albedo.X = albedoR;
-                result.albedo.Y = albedoG;
-                result.albedo.Z = albedoB;
-            }
-            else
-                result.albedo = shading.albedo[0];
-
-            
-
-
-
-            return result;
-
-            
-
-
-
-        }
+        
         
     }
 

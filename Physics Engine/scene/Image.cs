@@ -11,22 +11,22 @@ using static System.Windows.Forms.DataFormats;
 
 namespace Physics_Engine
 {
-    public class Image
+    public class maga
     {
         public Object[] objects;
         public Light[] lights;
         
         
-        readonly SKBitmap bitmap;
+        
         Config config { get; set; }
-         Vec3 backgroundColor { get; set; }
-        Matrix4 ObjectToWorldMatrix { get; set; }
-        public Image(Object[] objects, Light[] lights)
+        Vec3 backgroundColor { get; set; }
+        
+        public maga(Object[] objects, Light[] lights)
         {
             string json = File.ReadAllText("config.json");
             config = JsonSerializer.Deserialize<Config>(json)!;
 
-            bitmap = new SKBitmap(config.Image_res[0], config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
+            
             
             
             
@@ -35,7 +35,7 @@ namespace Physics_Engine
             this.objects = objects;
             this.lights = lights;
 
-            ObjectToWorldMatrix = new Matrix4();
+            
             
 
 
@@ -105,10 +105,7 @@ namespace Physics_Engine
         }
 
 
-        public static bool IsBehind(Vec3 vertex)
-        {
-            return -vertex.Z < 0.1;
-        }
+        
 
 
 
@@ -489,7 +486,8 @@ namespace Physics_Engine
         }
                   
         
-
+        
 
     }
+
 }
