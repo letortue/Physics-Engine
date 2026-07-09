@@ -26,7 +26,7 @@ namespace Physics_Engine
         public double w0;
         public double w1;
         public double w2;
-        public Object o;
+        public SceneObject o;
         public double textureT;
         public double textureV;
         
@@ -43,6 +43,7 @@ namespace Physics_Engine
     }
     public struct ShadingAttributes
     {
+        public bool lambertian;
         public bool isInterpolatedAlbedo;
         public Vec3[] albedo;
         public bool[] facing_ratio;
@@ -99,12 +100,11 @@ namespace Physics_Engine
         {
             this.color = color;
             this.intensity = intensity;
-            this.direction = direction;
+            this.direction = direction.Normalize();
         }
         public override Vec3 GetDirection(Vec3 hitPoint)
         {
-            Vec3 dir = direction.Normalize();
-            return direction.Normalize();
+            return direction;
         }
         public override double GetIntensity(Vec3 hitPoint)
         {
@@ -136,37 +136,40 @@ namespace Physics_Engine
             return intensity / (distance * distance * 4 * Math.PI);
         }
     }
-    public abstract class Object
+    public abstract class SceneObject
     {
         public Vec3[] vertices { get; set; }
-        
         public VertexAttributes attributes;
         public ShadingAttributes shading;
         
     }
 
 
-    public class Mesh : Object
+    public class Mesh : SceneObject
     {
         public int[] faces { get; set; }
-        public int nfaces { get; set; }
         public int[] vertexIndices { get; set; }
-        public bool convex { get; set; }
         public bool[] onesided { get; set; }
-        public Triangle[] triangles { get; set; }
+        
+        
         public int nTriangles { get; set; }
         public double[,] tIndices { get; set; }
-        public Mesh(Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, int[] faces, int[] indices, bool[] onesided, bool imported = false, Vec3[] faceNormals = null, int[] faceNormalIndices = null)
+        public Triangle[] triangles { get; set; }
+        public int nfaces { get; set; }
+        
+
+        public Mesh(Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, Vec3[] normals, int[] faces, int[] indices, bool clockwiseWinding = true)
         {
             this.vertices = vertices;
             this.faces = faces;
-            this.nfaces = faces.Length;
             this.vertexIndices = indices;
             this.attributes = attributes;
-            this.onesided= onesided;
             this.shading = shading;
+
+            this.nfaces = faces.Length;
             this.nTriangles = 0;
-            for (int i = 0; i < faces.Length; i++)
+
+            for (int i = 0; i < nfaces; i++)
             {
                 if(faces[i] > 2)
                 {
@@ -175,28 +178,36 @@ namespace Physics_Engine
             }
             this.tIndices = new double[nTriangles,3];
 
-            triangles = new Triangle[this.nTriangles];
+            List<Triangle> triangles = new List<Triangle>();
             int start = 0;
             int triIndex = 0;
             for (int i = 0; i < nfaces; i++)
             {
-                    for (int j = 0; (j + 2) < faces[i]; j++)
-                    { 
-                        int vi0 = vertexIndices[start]; int vi1 = vertexIndices[start + j + 1]; int vi2 = vertexIndices[start + j + 2];
-                        Vec3[] triangleVerts = {  vertices[vi0], vertices[vi1], vertices[vi2] };
-                        VertexAttributes atts = TVAtts(attributes, vi0, vi1, vi2);
-                        ShadingAttributes sh = TShAtts(shading, i);
-                        tIndices[triIndex, 0] = vi0;
-                        tIndices[triIndex, 1] = vi1;
-                        tIndices[triIndex, 2] = vi2;
-                        triangles[triIndex++] = new Triangle(triangleVerts, atts,sh, onesided[i]);
-                        
-                       
-                    }
+                for (int j = 0; (j + 2) < faces[i]; j++)
+                {
+                    int vi0, vi1, vi2;
+                    if (!clockwiseWinding) { vi2 = vertexIndices[start]; vi1 = vertexIndices[start + j + 1]; vi0 = vertexIndices[start + j + 2]; }
+                    else { vi0 = vertexIndices[start]; vi1 = vertexIndices[start + j + 1]; vi2 = vertexIndices[start + j + 2]; }
+                    Vec3[] triangleVerts = { vertices[vi0], vertices[vi1], vertices[vi2] };
+                    VertexAttributes atts = TVAtts(attributes, vi0, vi1, vi2);
+                    ShadingAttributes sh = TShAtts(shading, i);
+                    tIndices[triIndex, 0] = vi0;
+                    tIndices[triIndex, 1] = vi1;
+                    tIndices[triIndex, 2] = vi2;
+                    Vec3 edge1 = vertices[vi1] - vertices[vi0];
+                    Vec3 edge2 = vertices[vi2] - vertices[vi0];
+                    Vec3 faceNormal = edge2.Cross(edge1).Normalize();
+                    triangles.Add(new Triangle(triangleVerts, faceNormal, atts, sh));
+
+
+                }
                 start += faces[i];
+                triIndex++;
             }
-            
+            this.triangles = [.. triangles];
         }
+
+        
         public static VertexAttributes TVAtts(VertexAttributes attributes, int vi0, int vi1, int vi2)
         {
             VertexAttributes atts = attributes;
@@ -217,19 +228,20 @@ namespace Physics_Engine
             return attributes;
         }
         
+        
+            
+        
     }
 
-    public class Ball : Object
+    public class Ball : SceneObject
     {
         public double radius { get; set; }
 
-        public Ball(Vec3 coords, VertexAttributes attributes, ShadingAttributes shading, double radius)
+        public Ball(Vec3 center, double radius, VertexAttributes attributes, ShadingAttributes shading)
         {
-            this.vertices = new Vec3[1];
+            
             this.attributes = attributes;
-            this.vertices[0].X = coords.X;
-            this.vertices[0].Y = coords.Y;
-            this.vertices[0].Z = coords.Z;
+            this.vertices[0] = center;
             this.radius = radius;
             this.shading = shading;
 
@@ -240,14 +252,14 @@ namespace Physics_Engine
 
     }
 
-    public class Plane : Object
+    public class Plane : SceneObject
     {
         public Vec3 normal { get; set; }
         public Vec3 point { get; set; }
 
         public Plane( VertexAttributes attributes, ShadingAttributes shading, Vec3 normal, Vec3 point)
         {
-            this.vertices = new Vec3[1];
+            
             this.vertices[0] = point;
             this.attributes = attributes;
             this.normal = normal;
@@ -256,7 +268,7 @@ namespace Physics_Engine
         }
         
     }
-    public class Disk : Object
+    public class Disk : SceneObject
     {
         public Vec3 normal { get; set; }
         public double radius { get; set; }
@@ -266,7 +278,7 @@ namespace Physics_Engine
         public Disk(Vec3 center, VertexAttributes attributes,ShadingAttributes shading, Vec3 normal, double radius)
         {
             this.attributes= attributes;
-            this.vertices = new Vec3[1];
+            
             this.normal = normal;
             this.radius = radius;
             this.square_radius = Math.Pow(radius,2);
@@ -278,33 +290,17 @@ namespace Physics_Engine
         
     }
     
-    public class Triangle : Object
+    public class Triangle : SceneObject
     {
-        public Vec3 normal;
-        
-        public bool onesided;
-        private double area;
-        
-        
-        
-        public Triangle(Vec3[] coords, VertexAttributes attributes, ShadingAttributes shading, bool onesided = false)
+        public Vec3 normal { get; set; }
+        public Triangle(Vec3[] vertices, Vec3 normal, VertexAttributes attributes, ShadingAttributes shading)
         {
-
-            this.vertices = new Vec3[3];
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                vertices[i].X = coords[i].X;
-                vertices[i].Y = coords[i].Y;
-                vertices[i].Z = coords[i].Z;
-            }
-            this.area = (vertices[1] - vertices[0]).Cross(vertices[2] - vertices[0]).Magnitude();
-            this.normal = (vertices[1] - vertices[0]).Cross(vertices[2] - vertices[0]).Normalize();
             
-            this.onesided = onesided;
+            this.vertices = vertices;
             this.attributes = attributes;
             this.shading = shading;
-            
-                
+            this.normal = normal;
+
 
         }
 

@@ -22,7 +22,7 @@ namespace Physics_Engine
         
         private SKControl skControl;
         private bool[] KeyPressed;
-        readonly public Object[] objects;
+        readonly public SceneObject[] objects;
         public  SKCanvas canvas;
         Image image;
         bool RenderFinished = false;
@@ -247,7 +247,7 @@ namespace Physics_Engine
                 refIndex = 1
             };
             Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj", import_attributes, import_shading);
-            Object[] objects = { import };
+            SceneObject[] objects = { import };
 
 
             image = new Image(objects, lights);
@@ -281,7 +281,7 @@ namespace Physics_Engine
                     }
                     
 
-                    foreach (Object o in objects) image.Update(o); //
+                    foreach (SceneObject o in objects) image.Update(o); //
                     frames.Add(image.MapImage());
                     frameIndex++;
                 }

@@ -13,7 +13,7 @@ namespace Physics_Engine
 {
     public class maga
     {
-        public Object[] objects;
+        public SceneObject[] objects;
         public Light[] lights;
         
         
@@ -21,7 +21,7 @@ namespace Physics_Engine
         Config config { get; set; }
         Vec3 backgroundColor { get; set; }
         
-        public maga(Object[] objects, Light[] lights)
+        public maga(SceneObject[] objects, Light[] lights)
         {
             string json = File.ReadAllText("config.json");
             config = JsonSerializer.Deserialize<Config>(json)!;
@@ -67,7 +67,7 @@ namespace Physics_Engine
         {
             canvas.DrawBitmap(map, 0, 0);
         }
-        public void Update(Object o, double pixelsPerMeter = 50)
+        public void Update(SceneObject o, double pixelsPerMeter = 50)
         {
 
             double t = (float)config.Interval / 1000;
@@ -201,7 +201,7 @@ namespace Physics_Engine
             
 
         }
-        public void ColorPixel(byte[] pixels, int index, Vec3 color, Vec3 minusDir, HitResult result, Object o)
+        public void ColorPixel(byte[] pixels, int index, Vec3 color, Vec3 minusDir, HitResult result, SceneObject o)
         {
             if (!result.hit)
             {
@@ -241,7 +241,7 @@ namespace Physics_Engine
             }
         }
 
-        private Vec3 CastRay(Ray R, Object[] objects, int depthRecursion, out HitResult hit, double i,double j)
+        private Vec3 CastRay(Ray R, SceneObject[] objects, int depthRecursion, out HitResult hit, double i,double j)
         {
             hit = new HitResult();
             
@@ -358,8 +358,7 @@ namespace Physics_Engine
             double discriminant = b * b - 4 * c;
             if (discriminant < 0)
             {
-                // total internal reflection - treat as mirror
-                // this is what's likely happening at steep angles
+                
                 if (discriminant < 0) return -1;
             }
             double t1 = (-b - Math.Sqrt(discriminant)) / 2;
@@ -367,13 +366,13 @@ namespace Physics_Engine
             if (t1 > t2) return t1;
             return t2;
         }
-        private HitResult FindClosestHit(Ray R, Object[] objects)
+        private HitResult FindClosestHit(Ray R, SceneObject[] objects)
         {
             
 
             HitResult resultHit = new HitResult();
             double depth = double.PositiveInfinity;
-            foreach (Object o in objects)
+            foreach (SceneObject o in objects)
             {
                 HitResult r;
                 if (o is Mesh mesh)
@@ -404,7 +403,7 @@ namespace Physics_Engine
         
         
         
-        public bool HandleShadow(Object o, HitResult hit, Vec3 minusDir, Light light)
+        public bool HandleShadow(SceneObject o, HitResult hit, Vec3 minusDir, Light light)
         {
             HitResult result = o.GetIntersectionPoint(new Ray(hit.point + (1e-4 * hit.normal), minusDir));
             if (light is not PointLight)
@@ -421,7 +420,7 @@ namespace Physics_Engine
             return false;
         }
         
-        public bool IsInShadow(Vec3 minusDir, HitResult hit, Object o, Light light)
+        public bool IsInShadow(Vec3 minusDir, HitResult hit, SceneObject o, Light light)
         {
             
             if(o is Mesh)
@@ -450,7 +449,7 @@ namespace Physics_Engine
                     if (spot.falloff > spot.GetDirection(hit.point).Normalize().Dot(spot.facingDir)) return false; 
                     
                 }
-                foreach (Object ob in objects)
+                foreach (SceneObject ob in objects)
                 {
                     if (IsInShadow(minusDir, hit, ob, light)) { return false; }
                     
@@ -458,7 +457,7 @@ namespace Physics_Engine
                 return true;
         }
         
-        public Vec3 GetSurfaceColor(Object o, HitResult hit, Light[] lights, Vec3 albedo,  Func<Vec3, Vec3> textureFunc)
+        public Vec3 GetSurfaceColor(SceneObject o, HitResult hit, Light[] lights, Vec3 albedo,  Func<Vec3, Vec3> textureFunc)
         {
             albedo = albedo / Math.PI;
             //physics accurate normalization

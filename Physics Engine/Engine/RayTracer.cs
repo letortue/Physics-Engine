@@ -79,7 +79,7 @@ namespace Physics_Engine.Engine
 
 
 
-                    MapObjects(scene, config, pixels, rays, i, j);
+                    MapObjects(scene, pixels, rays, i, j);
                 }
 
             });
@@ -89,18 +89,18 @@ namespace Physics_Engine.Engine
 
         }
 
-        private void MapObjects(Scene scene, Config config, byte[] pixels, Ray[] rays, double i, double j)
+        private void MapObjects(Scene scene, byte[] pixels, Ray[] rays, double i, double j)
         {
-            int index = (int)((j * config.Image_res[0] + i) * 4);
+            int index = (int)((j * scene.config.Image_res[0] + i) * 4);
             Vec3 color = new Vec3(0, 0, 0);
 
 
-            color += CastRay(scene, config, rays[0], scene.objects, 0, out HitResult result, i, j);
+            color += CastRay(scene, rays[0], scene.objects, 0, out HitResult result, i, j);
             int num = 1;
 
             for (int k = 1; k < rays.Length; k++)
             {
-                color += CastRay(scene, config, rays[k], scene.objects, 0, out HitResult hit, i, j);
+                color += CastRay(scene, rays[k], scene.objects, 0, out HitResult hit, i, j);
                 num++;
             }
             color /= num;
@@ -111,7 +111,7 @@ namespace Physics_Engine.Engine
 
 
         }
-        public void ColorPixel(byte[] pixels, int index, Vec3 color, Vec3 minusDir, HitResult result, Object o)
+        public void ColorPixel(byte[] pixels, int index, Vec3 color, Vec3 minusDir, HitResult result, SceneObject o)
         {
             if (!result.hit)
             {
@@ -151,14 +151,14 @@ namespace Physics_Engine.Engine
             }
         }
 
-        private Vec3 CastRay(Scene scene, Config config, Ray R, Object[] objects, int depthRecursion, out HitResult hit, double i, double j)
+        private Vec3 CastRay(Scene scene, Ray R, SceneObject[] objects, int depthRecursion, out HitResult hit, double i, double j)
         {
             hit = new HitResult();
-            Vec3 backgroundColor = new Vec3(config.BackgroundColor[0], config.BackgroundColor[1], config.BackgroundColor[2]);
+            Vec3 backgroundColor = new Vec3(scene.config.BackgroundColor[0], scene.config.BackgroundColor[1], scene.config.BackgroundColor[2]);
 
             if (depthRecursion > 3) return backgroundColor;
 
-            HitResult result = FindClosestHit(scene, config, R, objects);
+            HitResult result = FindClosestHit(scene, R, objects);
 
             hit = result;
 
@@ -167,7 +167,7 @@ namespace Physics_Engine.Engine
 
             if (result.o.shading.isReflective)
             {
-                Vec3 reflectedColor = Reflect(scene, config, result, R, depthRecursion + 1, i, j);
+                Vec3 reflectedColor = Reflect(scene, result, R, depthRecursion + 1, i, j);
 
                 return result.o.shading.albedo[0] * reflectedColor;
 
@@ -184,15 +184,15 @@ namespace Physics_Engine.Engine
 
 
                 refractionRay.direction = refractionRay.direction.Normalize();
-                Vec3 refractedColor = CastRay(scene, config, refractionRay, scene.objects, depthRecursion + 1, out HitResult h, i, j);
-                Vec3 reflectedColor = Reflect(scene, config, result, R, depthRecursion, i, j);
+                Vec3 refractedColor = CastRay(scene, refractionRay, scene.objects, depthRecursion + 1, out HitResult h, i, j);
+                Vec3 reflectedColor = Reflect(scene, result, R, depthRecursion, i, j);
                 Vec3 finalColor = (kr * reflectedColor) + ((1 - kr) * refractedColor);
 
 
                 return result.o.shading.albedo[0] * finalColor;
 
             }
-            return GetSurfaceColor(scene, config, result.o, result, scene.lights, result.albedo, result.o.shading.textureFunc);
+            return GetSurfaceColor(scene, result.o, result, scene.lights, result.albedo, result.o.shading.textureFunc);
 
 
         }
@@ -235,11 +235,11 @@ namespace Physics_Engine.Engine
             return refractionRay;
 
         }
-        private Vec3 Reflect(Scene scene, Config config, HitResult result, Ray R, int depthRecursion, double i, double j)
+        private Vec3 Reflect(Scene scene, HitResult result, Ray R, int depthRecursion, double i, double j)
         {
             if (result.o.shading.oneSided && result.normal.Dot(R.direction) > 0)
             {
-                return GetSurfaceColor(scene, config, result.o, result, scene.lights, result.albedo, result.o.shading.textureFunc);
+                return GetSurfaceColor(scene, result.o, result, scene.lights, result.albedo, result.o.shading.textureFunc);
             }
             else if (result.normal.Dot(R.direction) > 0)
             {
@@ -253,7 +253,7 @@ namespace Physics_Engine.Engine
                 origin = result.point + (1e-06 * result.normal)
             };
 
-            Vec3 reflectedColor = CastRay(scene, config, reflectionRay, scene.objects, depthRecursion + 1, out HitResult h, i, j);
+            Vec3 reflectedColor = CastRay(scene, reflectionRay, scene.objects, depthRecursion + 1, out HitResult h, i, j);
             return reflectedColor;
         }
         double Schlick(double cosTheta, double ior)
@@ -278,19 +278,19 @@ namespace Physics_Engine.Engine
             if (t1 > t2) return t1;
             return t2;
         }
-        private HitResult FindClosestHit(Scene scene, Config config, Ray R, Object[] objects)
+        private HitResult FindClosestHit(Scene scene, Ray R, SceneObject[] objects)
         {
 
 
             HitResult resultHit = new HitResult();
             double depth = double.PositiveInfinity;
-            foreach (Object o in objects)
+            foreach (SceneObject o in objects)
             {
                 HitResult r;
                 if (o is Mesh mesh)
                 {
 
-                    r = FindClosestHit(scene, config, R, mesh.triangles);
+                    r = FindClosestHit(scene, R, mesh.triangles);
                     if (r.hit && r.t < depth) { depth = r.t; resultHit = r; }
                     continue;
                 }
@@ -299,7 +299,7 @@ namespace Physics_Engine.Engine
 
 
 
-                if (r.t <= 0 || !r.hit || r.t > config.Clipping_range) continue;
+                if (r.t <= 0 || !r.hit || r.t > scene.config.Clipping_range) continue;
                 if (r.t < depth)
                 {
                     depth = r.t;
@@ -315,12 +315,12 @@ namespace Physics_Engine.Engine
 
 
 
-        public bool HandleShadow(Scene scene, Config config, Object o, HitResult hit, Vec3 minusDir, Light light)
+        public bool HandleShadow(Scene scene, SceneObject o, HitResult hit, Vec3 minusDir, Light light)
         {
             HitResult result = GetIntersectionPoint(o,new Ray(hit.point + (1e-4 * hit.normal), minusDir));
             if (light is not PointLight)
             {
-                if (result.hit && result.t > 0 && result.t < config.Clipping_range) { return true; }
+                if (result.hit && result.t > 0 && result.t < scene.config.Clipping_range) { return true; }
             }
             else
             {
@@ -332,7 +332,7 @@ namespace Physics_Engine.Engine
             return false;
         }
 
-        public bool IsInShadow(Scene scene, Config config, Vec3 minusDir, HitResult hit, Object o, Light light)
+        public bool IsInShadow(Scene scene, Vec3 minusDir, HitResult hit, SceneObject o, Light light)
         {
 
             if (o is Mesh)
@@ -342,18 +342,18 @@ namespace Physics_Engine.Engine
 
                 foreach (Triangle t in mesh.triangles)
                 {
-                    if (HandleShadow(scene, config, t, hit, minusDir, light)) return true;
+                    if (HandleShadow(scene, t, hit, minusDir, light)) return true;
 
                 }
             }
             else
             {
-                if (HandleShadow(scene, config, o, hit, minusDir, light)) return true;
+                if (HandleShadow(scene, o, hit, minusDir, light)) return true;
             }
             return false;
         }
 
-        private bool IsLit(Scene scene, Config config, Vec3 minusDir, HitResult hit, Light light)
+        private bool IsLit(Scene scene, Vec3 minusDir, HitResult hit, Light light)
         {
 
             if (light is SpotLight spot)
@@ -361,15 +361,15 @@ namespace Physics_Engine.Engine
                 if (spot.falloff > spot.GetDirection(hit.point).Normalize().Dot(spot.facingDir)) return false;
 
             }
-            foreach (Object ob in scene.objects)
+            foreach (SceneObject ob in scene.objects)
             {
-                if (IsInShadow(scene, config, minusDir, hit, ob, light)) { return false; }
+                if (IsInShadow(scene, minusDir, hit, ob, light)) { return false; }
 
             }
             return true;
         }
 
-        public Vec3 GetSurfaceColor(Scene scene, Config config, Object o, HitResult hit, Light[] lights, Vec3 albedo, Func<Vec3, Vec3> textureFunc)
+        public Vec3 GetSurfaceColor(Scene scene, SceneObject o, HitResult hit, Light[] lights, Vec3 albedo, Func<Vec3, Vec3> textureFunc)
         {
             albedo = albedo / Math.PI;
             //physics accurate normalization
@@ -379,7 +379,7 @@ namespace Physics_Engine.Engine
                 Vec3 dir = light.GetDirection(hit.point);
                 Vec3 minusDir = new Vec3(0 - dir.X, 0 - dir.Y, 0 - dir.Z);
 
-                if (IsLit(scene, config, minusDir, hit, light))
+                if (IsLit(scene, minusDir, hit, light))
                 {
                     double dot;
                     if (o is Disk) dot = Math.Abs(minusDir.Dot(hit.normal));
@@ -395,7 +395,7 @@ namespace Physics_Engine.Engine
             return albedo * contributions;
 
         }
-        public HitResult GetIntersectionPoint(Object o, Ray r)
+        public HitResult GetIntersectionPoint(SceneObject o, Ray r)
         {
            
 
@@ -543,7 +543,7 @@ namespace Physics_Engine.Engine
             double w2 = tuv[2];
             if (w0 < 0 || w1 < 0 || w2 < 0 || w0 > 1 || w1 > 1 || w2 > 1) { return new HitResult { hit = false }; }
 
-            if ((triangle.onesided && triangle.normal.Dot(r.direction) > 0) || Math.Abs(triangle.normal.Dot(r.direction)) < 1e-6 || tuv[0] < 0) return new HitResult { hit = false };
+            if ((triangle.shading.oneSided && triangle.normal.Dot(r.direction) > 0) || Math.Abs(triangle.normal.Dot(r.direction)) < 1e-6 || tuv[0] < 0) return new HitResult { hit = false };
 
             Vec3 point = r.origin + tuv[0] * r.direction;
             HitResult result = new HitResult

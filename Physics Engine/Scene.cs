@@ -11,14 +11,14 @@ namespace Physics_Engine
 
     public class Scene
     {
-        public Object[] objects;
+        public SceneObject[] objects;
         
         public Light[] lights;
         public Config config { get; set; }
         
-        public Scene(System.Object[] objects, Light[] lights, Config config)
+        public Scene(SceneObject[] objects, Light[] lights, Config config)
         {
-            
+            this.objects = objects;
             this.lights = lights;
             this.config = config;
         }

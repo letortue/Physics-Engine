@@ -24,6 +24,8 @@ namespace Physics_Engine
         public bool IsWrite { get; set; }
         public bool IsRead { get; set; }
         public bool IsPlayback { get; set; }
+        public bool IsRepeat { get; set; }
+        public int LightDampener { get; set; }
 
 
 

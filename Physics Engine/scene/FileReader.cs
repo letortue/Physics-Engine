@@ -3,7 +3,7 @@
 
     public static class FileReader
     {
-        public static Mesh ReadOBJ(string filepath, VertexAttributes attributes, ShadingAttributes shading)
+        public static Mesh ReadOBJ(string filepath, VertexAttributes attributes, ShadingAttributes shading, bool clockwiseWinding)
         {
             List<Vec3> vertices = new List<Vec3>();
             List<int> indices = new List<int>();
@@ -79,9 +79,9 @@
             }
             shading.albedo = albedoShading;
             shading.facing_ratio = facing_ratio;
+            
 
-
-            Mesh mesh = new Mesh(vertices.ToArray(), attributes, shading, faces.ToArray(), indices.ToArray(), new bool[faces.Count], true, faceNormals.ToArray(), faceNormalIndices.ToArray());
+            Mesh mesh = new Mesh(vertices.ToArray(), attributes, shading, faceNormals.ToArray(), faces.ToArray(), indices.ToArray(),clockwiseWinding);
 
             return mesh;
 
