@@ -14,7 +14,7 @@ namespace Physics_Engine.Engine
 {
     public class RayTracer : IRenderEngine
     {
-        Camera camera;
+        public Camera camera;
         public RayTracer(Camera camera) 
         {
             this.camera = camera;
@@ -23,14 +23,14 @@ namespace Physics_Engine.Engine
         {
             Config config = scene.config;
 
-            Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
+            
 
 
             Vec3 camWorldPos = new Vec3
             {
-                X = Globals.Camera.matrix[0, 3],
-                Y = Globals.Camera.matrix[1, 3],
-                Z = Globals.Camera.matrix[2, 3],
+                X = camera.matrix[0, 3],
+                Y = camera.matrix[1, 3],
+                Z = camera.matrix[2, 3],
             };
 
             double ratio = (double)config.Image_res[0] / (double)config.Image_res[1];
@@ -61,7 +61,7 @@ namespace Physics_Engine.Engine
                             double offsetX = (k + 0.5) / config.AntiAliasingRes * stepX;
                             double offsetY = (h + 0.5) / config.AntiAliasingRes * stepY;
                             Vec4 dir4 = new Vec4(sx + offsetX, sy + offsetY, -1, 0);
-                            dir4 = Globals.Camera.matrix * dir4;
+                            dir4 = camera.matrix * dir4;
                             dir4.Normalize();
                             Vec3 dir = new Vec3
                             {

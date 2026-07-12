@@ -10,6 +10,7 @@ namespace Physics_Engine.Engine
 {
     public interface IRenderEngine
     {
+
         byte[] RenderImage(Scene scene);
         
 
