@@ -1,0 +1,8 @@
+﻿{
+  "LightDampener": 1,
+  "AntiAliasingRes": 2,
+  "Clipping_range": 10000,
+  "FOV": 100,
+  "Movement_speed": 0.3,
+  "BackgroundColor": [ 135, 206, 235 ]
+}

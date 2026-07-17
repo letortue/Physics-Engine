@@ -2,8 +2,9 @@ namespace Physics_Engine
 {
     using Accessibility;
     using Aspose.ThreeD.Entities;
+    using Aspose.ThreeD.Formats;
     using OpenTK.Graphics.OpenGL;
-    using Physics_Engine.Engine;
+    
     using SkiaSharp;
     using SkiaSharp.Views.Desktop;
     using System.Collections.Generic;
@@ -19,41 +20,32 @@ namespace Physics_Engine
 
     public partial class Form1 : Form
     {
+        public Engine engine;
+        public Scene scene;
 
-        private IRenderEngine engine;
-        private Camera camera;
-
-        
-        Dictionary<string, bool> keysPressed;
         private SKControl skControl;
-        readonly public SceneObject[] objects;
         public  SKCanvas canvas;
-        Image image;
-        bool RenderFinished = false;
-        bool WriteFinished = false;
-        int frameIndex = 0;
-        List<byte[]> frames = new List<byte[]>();
-        int renderFrame = 0;
 
         public Form1()
         {
-            camera = new Camera(new Matrix4());
-            engine = new RayTracer(camera);
-            Dictionary<string, bool> keysPressed = new Dictionary<string, bool>();
+            string json1 = File.ReadAllText("config_engine.json");
+            Config_Engine engine_config = JsonSerializer.Deserialize<Config_Engine>(json1)!;
+            engine = new Engine(new Rasterizer(), new Camera(engine_config), engine_config);
+            
+            
 
-            /*
-            string json = File.ReadAllText("config.json");
-            config = JsonSerializer.Deserialize<Config>(json)!;
-            */
+            
+            
+            
 
             InitializeComponent();
 
-            this.ClientSize = new Size(config.Image_res[0], config.Image_res[1]);
+            this.ClientSize = new Size(engine.engine_config.Image_res[0], engine.engine_config.Image_res[1]);
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
 
             skControl = new SKControl();
-            skControl.Size = new Size(config.Image_res[0], config.Image_res[1]);
+            skControl.Size = new Size(engine.engine_config.Image_res[0], engine.engine_config.Image_res[1]);
             skControl.Dock = DockStyle.Fill;
             skControl.PaintSurface += OnPaintSurface;
             skControl.MouseMove += OnMouseMove;
@@ -67,22 +59,7 @@ namespace Physics_Engine
             
 
 
-            string? dir = Path.GetDirectoryName(config.ReadRenderPath);
-
-            if(!string.IsNullOrEmpty(dir) && config.IsRead)
-            {
-                RenderFinished = true;
-                BinaryReader reader = new BinaryReader(File.Open(config.ReadRenderPath, FileMode.Open));
-
-                while (reader.BaseStream.Position < reader.BaseStream.Length)
-                {
-                    int length = reader.ReadInt32();  // read frame size
-                    byte[] frame = reader.ReadBytes(length); // read frame data
-
-                    frames.Add(frame);
-                }
-                reader.Close();
-            }
+            
             
 
 
@@ -164,8 +141,8 @@ namespace Physics_Engine
             double[] opacities = new double[24];
             for (int i = 0; i < 24; i++)
             {
-                velocities[i] = new Vec3(0, 0.01, 0);
-                accelerations[i] = new Vec3(0, 0.1, 0);
+                velocities[i] = new Vec3(0, 0, 0);
+                accelerations[i] = new Vec3(0, 0, 0);
                 opacities[i] = 255;
             }
 
@@ -178,7 +155,15 @@ namespace Physics_Engine
                 new Vec3(1, 0, 1),
                 new Vec3(0, 1, 1)
             ];
-
+            Vec3[] normals =
+            {
+                new Vec3(0,0,1),
+                new Vec3(0,0,-1),
+                new Vec3(-1,0,0),
+                new Vec3(1,0,0),
+                new Vec3(0,1,0),
+                new Vec3(0,-1,0)
+            };
             Vec3[] albedo = new Vec3[24];
             for (int i = 0; i < 24; i++)
             {
@@ -200,11 +185,13 @@ namespace Physics_Engine
                 facing_ratio = ratio,
                 albedo = albedoShading,
                 isInterpolatedAlbedo = false,
-                isReflective = true
+                isReflective = true,
+                lambertian = true
+                
 
             };
 
-            Mesh cube = new Mesh(vertices, atts, shading, faces, indices, onesided);
+            Mesh cube = new Mesh(vertices, atts, shading, normals, faces, indices, true);
 
             Vec3[] c = { new Vec3(255, 255, 255), new Vec3(255, 255, 255), new Vec3(255, 255, 255) };
             Vec3[] v = { new Vec3(-0.1, 0, 0), new Vec3(-0.1, 0, 0), new Vec3(-0.1, 0, 0) };
@@ -225,9 +212,9 @@ namespace Physics_Engine
                 return (x + z) % 2 == 0 ? new Vec3(1,1,1) : new Vec3(0,0,0);
             }
             
-            Light[] lights = {/* new DistantLight(new Vec3(255, 0, 0), 3, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 05, new Vec3(01, -0.1, -0.5)) ,*/ new PointLight(new Vec3(0,7,20.1), new Vec3(255,255,255), 10000) /*, new SpotLight(new Vec3(10,0,0), new Vec3(255,10,255), 1000000, 0.3,new Vec3(0,-0.6,-1))*/};
-            Ball ball1 = new Ball(new Vec3(0, 0, -10), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, isRefractive = true, refIndex = 1.05}, 5);
-            Ball ball2 = new Ball(new Vec3(0, 0, -30), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 0, 0)], isInterpolatedAlbedo = false, isReflective = false }, 5);
+            Light[] lights = { new DistantLight(new Vec3(255, 0, 0), 1000, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 1005, new Vec3(01, -0.1, -0.5)) , new PointLight(new Vec3(0,7,20.1), new Vec3(255,255,255), 10000) , new SpotLight(new Vec3(10,0,0), new Vec3(255,10,255), 1000000, 0.3,new Vec3(0,-0.6,-1))};
+            Ball ball1 = new Ball(new Vec3(0, 0, -10), 5, at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, isRefractive = true, refIndex = 1.05});
+            Ball ball2 = new Ball(new Vec3(0, 0, -30), 5, at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 0, 0)], isInterpolatedAlbedo = false, isReflective = false });
             Plane plane1 = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, textureFunc = CheckerBoard }, new Vec3(0,1,0), new Vec3(0,-20,0));
             Plane plane2 = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = true, oneSided = false }, new Vec3(1,0,0), new Vec3(-40,0,0));
             Disk disk = new Disk(new Vec3(-15,5,0), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false }, new Vec3(0,1,1), 10);
@@ -250,20 +237,23 @@ namespace Physics_Engine
                 isReflective = false,
                 isRefractive = false,
                 textureFunc = null,
-                refIndex = 1
+                refIndex = 1,
+                lambertian = true
             };
-            Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj", import_attributes, import_shading, true);
+            Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj", import_attributes, import_shading, false);
             SceneObject[] objects = { import };
-
+            string json2 = File.ReadAllText("config_render.json");
+            Config_Render render_config = JsonSerializer.Deserialize<Config_Render>(json2)!;
+            Scene scene = new Scene(objects, lights, render_config);
 
 
             Timer timer = new Timer();
-            timer.Interval = config.Interval;
+            timer.Interval = engine.engine_config.Interval;
 
 
             timer.Tick += (s, e) =>
             {
-                TickUpdate();
+                engine.TickUpdate(scene);
                 skControl.Invalidate();
 
             };
@@ -275,12 +265,12 @@ namespace Physics_Engine
         
         
 
-        /*
+        
         private void Form1_Load(object sender, EventArgs e)
         {
 
         }
-        */
+        
         
 
 

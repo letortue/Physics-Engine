@@ -13,7 +13,7 @@
     <PackageReference Include="Aspose.3D" Version="26.4.0" />
     <PackageReference Include="SkiaSharp" Version="2.88.6" />
     <PackageReference Include="SkiaSharp.Views.WindowsForms" Version="2.88.6" />
-    <None Update="config.json">
+    <None Update="config_engine.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="config\config.json">

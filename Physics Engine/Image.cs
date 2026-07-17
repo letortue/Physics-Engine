@@ -11,6 +11,7 @@ using static System.Windows.Forms.DataFormats;
 
 namespace Physics_Engine
 {
+    /*
     public class maga
     {
         public SceneObject[] objects;
@@ -18,13 +19,13 @@ namespace Physics_Engine
         
         
         
-        Config config { get; set; }
+        Config_Engine config { get; set; }
         Vec3 backgroundColor { get; set; }
         
         public maga(SceneObject[] objects, Light[] lights)
         {
             string json = File.ReadAllText("config.json");
-            config = JsonSerializer.Deserialize<Config>(json)!;
+            config = JsonSerializer.Deserialize<Config_Engine>(json)!;
 
             
             
@@ -488,5 +489,5 @@ namespace Physics_Engine
         
 
     }
-
+    */
 }

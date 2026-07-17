@@ -8,23 +8,28 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Physics_Engine.Engine
+namespace Physics_Engine
 {
     public class Rasterizer : IRenderEngine
     {
-        Camera camera { get; set; }
-        public Rasterizer(Camera camera) 
+        private Camera camera { get; set; }
+        private Config_Engine engine_config { get; set; }
+        public void SetCamera(Camera camera)
         {
             this.camera = camera;
         }
+        public void SetEngineConfig(Config_Engine engine_config)
+        {
+            this.engine_config = engine_config;
+        }
         public byte[] RenderImage(Scene scene)
         {
-            Config config = scene.config;
-            byte[] pixels = new byte[config.Image_res[0] * config.Image_res[1] * 4];
-            double[] depths = new double[config.Image_res[0] * config.Image_res[1]];
+            
+            byte[] pixels = new byte[engine_config.Image_res[0] * engine_config.Image_res[1] * 4];
+            double[] depths = new double[engine_config.Image_res[0] * engine_config.Image_res[1]];
             Array.Fill(depths, double.PositiveInfinity);
 
-            Matrix4 inverse = Globals.Camera.matrix.InverseRotationPart();
+            Matrix4 inverse = camera.matrix.InverseRotationPart();
             foreach (SceneObject obj in scene.objects)
             {
                 if (obj is Triangle triangle) HandleTriangle(scene, depths, pixels, triangle, inverse);
@@ -91,7 +96,7 @@ namespace Physics_Engine.Engine
             foreach (Triangle t in mesh.triangles)
             {
                 Vec3 centroid = (t.vertices[0] + t.vertices[1] + t.vertices[2]) / 3.0;
-                Vec3 viewDir = (centroid - new Vec3(Globals.Camera.matrix[0, 3], Globals.Camera.matrix[1, 3], Globals.Camera.matrix[2, 3])).Normalize();
+                Vec3 viewDir = (centroid - new Vec3(camera.matrix[0, 3], camera.matrix[1, 3], camera.matrix[2, 3])).Normalize();
 
                 if (viewDir.Dot(t.normal) > 0 && mesh.shading.oneSided == true) continue;
                 ;
@@ -129,31 +134,31 @@ namespace Physics_Engine.Engine
 
                 int minX = Math.Max(0, (int)Math.Floor(min.X));
                 int minY = Math.Max(0, (int)Math.Floor(min.Y));
-                int maxX = Math.Min(scene.config.Image_res[0] - 1, (int)Math.Ceiling(max.X));
-                int maxY = Math.Min(scene.config.Image_res[1] - 1, (int)Math.Ceiling(max.Y));
+                int maxX = Math.Min(engine_config.Image_res[0] - 1, (int)Math.Ceiling(max.X));
+                int maxY = Math.Min(engine_config.Image_res[1] - 1, (int)Math.Ceiling(max.Y));
 
 
                 bool behind = vertices.All(v => v.Z <= 0);
 
-                bool offScreen = maxX < 0 || minX > scene.config.Image_res[0] - 1 ||
-                maxY < 0 || minY > scene.config.Image_res[1] - 1;
-                bool tooFar = vertices.All(v => v.Z > scene.config.Clipping_range);
+                bool offScreen = maxX < 0 || minX > engine_config.Image_res[0] - 1 ||
+                maxY < 0 || minY > engine_config.Image_res[1] - 1;
+                bool tooFar = vertices.All(v => v.Z > scene.render_config.Clipping_range);
 
                 if (!IsOnScreenT(offScreen, tooFar, behind)) continue;
 
 
 
                 double area = BarycentricCoordinate(vertices[0], vertices[1], vertices[2]);
-                bool backFacing = area < 0;
+                
                 Vec3 c0 = colorsClipped[k][0];
                 Vec3 c1 = colorsClipped[k][1];
                 Vec3 c2 = colorsClipped[k][2];
 
-                LoopBoundingBox(scene, depths, pixels, minX, minY, maxX, maxY, vertices, area, c0, c1, c2, backFacing, t);
+                LoopBoundingBox(scene, depths, pixels, minX, minY, maxX, maxY, vertices, area, c0, c1, c2, t);
 
             }
         }
-        public void LoopBoundingBox(Scene scene, double[] depths, byte[] pixels, int minX, int minY, int maxX, int maxY, Vec3[] vertices, double area, Vec3 c0, Vec3 c1, Vec3 c2, bool backFacing, Triangle t)
+        public void LoopBoundingBox(Scene scene, double[] depths, byte[] pixels, int minX, int minY, int maxX, int maxY, Vec3[] vertices, double area, Vec3 c0, Vec3 c1, Vec3 c2, Triangle t)
         {
             for (int i = minX; i <= maxX; i++)
             {
@@ -169,6 +174,10 @@ namespace Physics_Engine.Engine
 
                     if (area < 0)
                         continue;
+                    if (i == engine_config.Image_res[0] / 2 && j == engine_config.Image_res[1] / 2 && Globals.TimeElapsed > 100 && (t.vertices[0].X == -1 && t.vertices[0].Y == -1 && t.vertices[0].Z == -3 && t.vertices[1].X == 1))
+                    {
+                        int a = 0;
+                    }
                     if (IsInsideTriangle(w0, w1, w2)) ColorPixelTriangle(scene, depths, p, pixels, t, area, w0, w1, w2, c0, c1, c2, vertices, i, j);
 
 
@@ -197,19 +206,19 @@ namespace Physics_Engine.Engine
 
 
             double z = 1.0 / oneOverZ;
-            if (i == scene.config.Image_res[0] / 2 && j == scene.config.Image_res[1] / 2 && Globals.TimeElapsed > 100 && z < 0)
+            if (i == engine_config.Image_res[0] / 2 && j == engine_config.Image_res[1] / 2 && Globals.TimeElapsed > 100 && z < 0)
             {
                 int a = 0;
             }
             //if (z < 0) z = -z;
 
-            if (i == scene.config.Image_res[0] / 2 && j == scene.config.Image_res[1] / 2) Console.WriteLine($"z: {z} depth: {depths[j * scene.config.Image_res[0] + i]} 1st vertex: {t.vertices[0].Z}{t.vertices[1].Z}{t.vertices[2].Z} ");
-            if (z <= depths[j * scene.config.Image_res[0] + i])
+            if (i == engine_config.Image_res[0] / 2 && j == engine_config.Image_res[1] / 2) Console.WriteLine($"z: {z} depth: {depths[j * engine_config.Image_res[0] + i]} 1st vertex: {t.vertices[0].Z}{t.vertices[1].Z}{t.vertices[2].Z} ");
+            if (z <= depths[j * engine_config.Image_res[0] + i])
             {
 
                 double intensity = GetTotalLightIntensity(scene, point, t, t.normal);
-                depths[j * scene.config.Image_res[0] + i] = z;
-                int index = (j * scene.config.Image_res[0] + i) * 4;
+                depths[j * engine_config.Image_res[0] + i] = z;
+                int index = (j * engine_config.Image_res[0] + i) * 4;
                 pixels[index + 0] = (byte)(intensity * b);
                 pixels[index + 1] = (byte)(intensity * g);
                 pixels[index + 2] = (byte)(intensity * r);
@@ -222,10 +231,10 @@ namespace Physics_Engine.Engine
            
             foreach (Light light in scene.lights)
             {
-                if (o.shading.lambertian)
+                if (o.shading.lambertian && light is DistantLight)
                 {
                     Vec3 negativeDir = new Vec3(0 - light.GetDirection(point).X, 0 - light.GetDirection(point).Y, 0 - light.GetDirection(point).Z);
-                    total += Math.Max(0, (light.GetIntensity(normal) / scene.config.LightDampener) * normal.Dot(negativeDir));
+                    total += Math.Max(0, (light.GetIntensity(normal) / scene.render_config.LightDampener) * normal.Dot(negativeDir));
                     
                 }
 
@@ -332,15 +341,15 @@ namespace Physics_Engine.Engine
 
 
 
-            Matrix4 projectionM = Matrix4.ProjectionMatrix();
-            double f = 1 / Math.Tan(scene.config.FOV / 2 / 57.2958D);
+            Matrix4 projectionM = Matrix4.ProjectionMatrix(scene.render_config);
+            double f = 1 / Math.Tan(scene.render_config.FOV / 2 / 57.2958D);
 
 
 
             Vec4 projected = new Vec4(vertex.X, vertex.Y, vertex.Z, 1);
             projected = projectionM * projected;
-            double pRasterX = (projected.X + 1) / 2 * scene.config.Image_res[0];
-            double pRasterY = (1 - projected.Y) / 2 * scene.config.Image_res[1];
+            double pRasterX = (projected.X + 1) / 2 * engine_config.Image_res[0];
+            double pRasterY = (1 - projected.Y) / 2 * engine_config.Image_res[1];
             double pRasterZ = -vertex.Z;
 
             Vec3 v = new Vec3(pRasterX, pRasterY, pRasterZ);
@@ -350,5 +359,7 @@ namespace Physics_Engine.Engine
             return v;
 
         }
+
+        
     }   
 }

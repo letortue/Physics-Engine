@@ -14,13 +14,13 @@ namespace Physics_Engine
         public SceneObject[] objects;
         
         public Light[] lights;
-        public Config config { get; set; }
+        public Config_Render render_config { get; set; }
         
-        public Scene(SceneObject[] objects, Light[] lights, Config config)
+        public Scene(SceneObject[] objects, Light[] lights, Config_Render render_config)
         {
             this.objects = objects;
             this.lights = lights;
-            this.config = config;
+            this.render_config = render_config;
         }
     }
 }

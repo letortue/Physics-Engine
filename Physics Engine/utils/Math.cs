@@ -248,7 +248,7 @@ namespace Physics_Engine
     public struct Matrix3
     {
         public double[,] data;
-        private static Config config { get; set; }
+        
         public override string ToString()
         {
             return $"{data[0, 0]} {data[0, 1]} {data[0, 2]}  {Environment.NewLine} {data[1, 0]} {data[1, 1]} {data[1, 2]} {Environment.NewLine} {data[2, 0]} {data[2, 1]} {data[2, 2]}   ";
@@ -276,9 +276,7 @@ namespace Physics_Engine
 
         public Matrix3(bool zeros = false)
         {
-            string json = File.ReadAllText("config.json");
-
-            config = JsonSerializer.Deserialize<Config>(json)!;
+            
             if (zeros == true)
             {
                 this.data = new double[3, 3]
@@ -394,7 +392,7 @@ namespace Physics_Engine
     public class Matrix4
     {
         public double[,] data;
-        private static Config config { get; set; }
+        
         public override string ToString()
         {
             return $"{data[0,0]} {data[0, 1]} {data[0, 2]} {data[0, 3]} {Environment.NewLine} {data[1, 0]} {data[1, 1]} {data[1, 2]} {data[1, 3]} {Environment.NewLine} {data[2, 0]} {data[2, 1]} {data[2, 2]} {data[2, 3]} {Environment.NewLine} {data[3, 0]} {data[3, 1]} {data[3, 2]} {data[3, 3]}";
@@ -409,9 +407,9 @@ namespace Physics_Engine
 
         public Matrix4(bool zeros = false)
         {
-            string json = File.ReadAllText("config.json");
+            
 
-            config = JsonSerializer.Deserialize<Config>(json)!;
+            
             if (zeros == true)
             {
                 this.data = new double[4,4]
@@ -459,7 +457,7 @@ namespace Physics_Engine
             }
             return m;
         }
-        public static Matrix4 ProjectionMatrix()
+        public static Matrix4 ProjectionMatrix(Config_Render config)
         {
             Matrix4 m = new Matrix4();
             m[3, 2] = -1;

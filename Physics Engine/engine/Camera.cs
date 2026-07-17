@@ -16,13 +16,15 @@ namespace Physics_Engine
         
         private double yaw;
         private double pitch;
-        readonly Config config;
+        readonly Config_Engine config;
         Matrix4 yawMatrix;
-        public Camera(Matrix4 matrix = null)
+        public Camera(Config_Engine config, Matrix4 matrix = null)
         {
-
+            this.config = config;
+            /*
             string json = File.ReadAllText("config.json");
-            config = JsonSerializer.Deserialize<Config>(json)!;
+            config = JsonSerializer.Deserialize<Config_Engine>(json)!;
+            */
             this.matrix = matrix == null ? new Matrix4() : matrix;
             
         }
@@ -36,9 +38,9 @@ namespace Physics_Engine
         {
             Vec4 v = new Vec4(vector.X, vector.Y, vector.Z, 1);
             v = yawMatrix * v;
-            Globals.Camera.matrix[0, 3] += v.X;
-            Globals.Camera.matrix[1, 3] += v.Y;
-            Globals.Camera.matrix[2, 3] += v.Z;
+            this.matrix[0, 3] += v.X;
+            this.matrix[1, 3] += v.Y;
+            this.matrix[2, 3] += v.Z;
             
             
 
@@ -55,17 +57,17 @@ namespace Physics_Engine
             Matrix4 rotation = yawMatrix * pitchMatrix;
 
             
-            double tx = Globals.Camera.matrix[0, 3];
-            double ty = Globals.Camera.matrix[1, 3];
-            double tz = Globals.Camera.matrix[2, 3];
+            double tx = this.matrix[0, 3];
+            double ty = this.matrix[1, 3];
+            double tz = this.matrix[2, 3];
 
             
-            Globals.Camera.matrix = rotation;
+            this.matrix = rotation;
 
             
-            Globals.Camera.matrix[0, 3] = tx;
-            Globals.Camera.matrix[1, 3] = ty;
-            Globals.Camera.matrix[2, 3] = tz;
+            this.matrix[0, 3] = tx;
+            this.matrix[1, 3] = ty;
+            this.matrix[2, 3] = tz;
 
         }
 

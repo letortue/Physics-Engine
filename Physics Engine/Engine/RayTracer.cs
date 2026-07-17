@@ -10,18 +10,23 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using static System.Windows.Forms.DataFormats;
 
-namespace Physics_Engine.Engine
-{
+namespace Physics_Engine
+{ 
     public class RayTracer : IRenderEngine
     {
-        public Camera camera;
-        public RayTracer(Camera camera) 
+        private Camera camera;
+        private Config_Engine engine_config;
+        public void SetCamera(Camera camera)
         {
             this.camera = camera;
         }
+        public void SetEngineConfig(Config_Engine engine_config)
+        {
+            this.engine_config = engine_config;
+        }
         public byte[] RenderImage(Scene scene)
         {
-            Config config = scene.config;
+            
 
             
 
@@ -33,33 +38,33 @@ namespace Physics_Engine.Engine
                 Z = camera.matrix[2, 3],
             };
 
-            double ratio = (double)config.Image_res[0] / (double)config.Image_res[1];
-            double startX = (0.5 / config.Image_res[0] * 2 - 1) * ratio;
-            double startY = 1 - (0.5 / config.Image_res[1] * 2);
-            double stepX = (2.0 / config.Image_res[0]) * ratio;
-            double stepY = -(2.0 / config.Image_res[1]);
+            double ratio = (double)engine_config.Image_res[0] / (double)engine_config.Image_res[1];
+            double startX = (0.5 / engine_config.Image_res[0] * 2 - 1) * ratio;
+            double startY = 1 - (0.5 / engine_config.Image_res[1] * 2);
+            double stepX = (2.0 / engine_config.Image_res[0]) * ratio;
+            double stepY = -(2.0 / engine_config.Image_res[1]);
 
-            SKBitmap map = new SKBitmap(config.Image_res[0], config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
-            byte[] pixels = new byte[config.Image_res[0] * config.Image_res[1] * 4];
+            SKBitmap map = new SKBitmap(engine_config.Image_res[0], engine_config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
+            byte[] pixels = new byte[engine_config.Image_res[0] * engine_config.Image_res[1] * 4];
 
 
-            Parallel.For(0, config.Image_res[1], j =>
+            Parallel.For(0, engine_config.Image_res[1], j =>
             {
 
 
-                for (double i = 0; i < config.Image_res[0]; i++)
+                for (double i = 0; i < engine_config.Image_res[0]; i++)
                 {
 
                     double sx = startX + i * stepX;
                     double sy = startY + j * stepY;
-                    Ray[] rays = new Ray[config.AntiAliasingRes * config.AntiAliasingRes];
+                    Ray[] rays = new Ray[scene.render_config.AntiAliasingRes * scene.render_config.AntiAliasingRes];
 
-                    for (int k = 0; k < config.AntiAliasingRes; k++)
+                    for (int k = 0; k < scene.render_config.AntiAliasingRes; k++)
                     {
-                        for (int h = 0; h < config.AntiAliasingRes; h++)
+                        for (int h = 0; h < scene.render_config.AntiAliasingRes; h++)
                         {
-                            double offsetX = (k + 0.5) / config.AntiAliasingRes * stepX;
-                            double offsetY = (h + 0.5) / config.AntiAliasingRes * stepY;
+                            double offsetX = (k + 0.5) / scene.render_config.AntiAliasingRes * stepX;
+                            double offsetY = (h + 0.5) / scene.render_config.AntiAliasingRes * stepY;
                             Vec4 dir4 = new Vec4(sx + offsetX, sy + offsetY, -1, 0);
                             dir4 = camera.matrix * dir4;
                             dir4.Normalize();
@@ -69,7 +74,7 @@ namespace Physics_Engine.Engine
                                 Y = dir4.Y,
                                 Z = dir4.Z
                             };
-                            rays[k * config.AntiAliasingRes + h] = new Ray(camWorldPos, dir);
+                            rays[k * scene.render_config.AntiAliasingRes + h] = new Ray(camWorldPos, dir);
 
                         }
 
@@ -91,7 +96,7 @@ namespace Physics_Engine.Engine
 
         private void MapObjects(Scene scene, byte[] pixels, Ray[] rays, double i, double j)
         {
-            int index = (int)((j * scene.config.Image_res[0] + i) * 4);
+            int index = (int)((j * engine_config.Image_res[0] + i) * 4);
             Vec3 color = new Vec3(0, 0, 0);
 
 
@@ -154,7 +159,7 @@ namespace Physics_Engine.Engine
         private Vec3 CastRay(Scene scene, Ray R, SceneObject[] objects, int depthRecursion, out HitResult hit, double i, double j)
         {
             hit = new HitResult();
-            Vec3 backgroundColor = new Vec3(scene.config.BackgroundColor[0], scene.config.BackgroundColor[1], scene.config.BackgroundColor[2]);
+            Vec3 backgroundColor = new Vec3(scene.render_config.BackgroundColor[0], scene.render_config.BackgroundColor[1], scene.render_config.BackgroundColor[2]);
 
             if (depthRecursion > 3) return backgroundColor;
 
@@ -299,7 +304,7 @@ namespace Physics_Engine.Engine
 
 
 
-                if (r.t <= 0 || !r.hit || r.t > scene.config.Clipping_range) continue;
+                if (r.t <= 0 || !r.hit || r.t > scene.render_config.Clipping_range) continue;
                 if (r.t < depth)
                 {
                     depth = r.t;
@@ -320,7 +325,7 @@ namespace Physics_Engine.Engine
             HitResult result = GetIntersectionPoint(o,new Ray(hit.point + (1e-4 * hit.normal), minusDir));
             if (light is not PointLight)
             {
-                if (result.hit && result.t > 0 && result.t < scene.config.Clipping_range) { return true; }
+                if (result.hit && result.t > 0 && result.t < scene.render_config.Clipping_range) { return true; }
             }
             else
             {

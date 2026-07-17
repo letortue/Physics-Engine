@@ -1,22 +1,17 @@
 ﻿{
-  "Image_res": [ 200, 200 ],
+  "Image_res": [ 500, 500 ],
   "Interval": 17,
   "Canvas_res": [ 2, 2 ],
   "Sensitivity": 0.001,
-  "Clipping_range": 10000,
-  "FOV": 100,
-  "Movement_speed": 0.3,
-  "BackgroundColor": [ 135, 206, 235 ],
-  "AntiAliasingRes": 2,
-  "PreLoad": true,
+  "PreLoad": false,
   "FrameAmount": 10,
   "ReadRenderPath": "C:\\Users\\Marek\\source\\repos\\Physics Engine\\Physics Engine\\animation.bin",
   "WriteRenderPath": "C:\\Users\\Marek\\source\\repos\\Physics Engine\\Physics Engine\\animation.bin",
   "IsWrite": false,
   "IsRead": true,
   "IsPlayback": true,
-  "IsRepeat": true,
-  "LightDampener": 1000
+  "IsRepeat": true
+ 
 
 
 

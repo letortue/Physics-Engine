@@ -185,6 +185,10 @@ namespace Physics_Engine
             {
                 for (int j = 0; (j + 2) < faces[i]; j++)
                 {
+                    if(triangles.Count == 7)
+                    {
+                        int a = 0;
+                    }
                     int vi0, vi1, vi2;
                     if (!clockwiseWinding) { vi2 = vertexIndices[start]; vi1 = vertexIndices[start + j + 1]; vi0 = vertexIndices[start + j + 2]; }
                     else { vi0 = vertexIndices[start]; vi1 = vertexIndices[start + j + 1]; vi2 = vertexIndices[start + j + 2]; }
@@ -241,7 +245,7 @@ namespace Physics_Engine
         {
             
             this.attributes = attributes;
-            this.vertices[0] = center;
+            this.vertices = [center];
             this.radius = radius;
             this.shading = shading;
 
@@ -260,7 +264,7 @@ namespace Physics_Engine
         public Plane( VertexAttributes attributes, ShadingAttributes shading, Vec3 normal, Vec3 point)
         {
             
-            this.vertices[0] = point;
+            this.vertices = [point];
             this.attributes = attributes;
             this.normal = normal;
             this.point = point;
@@ -282,7 +286,7 @@ namespace Physics_Engine
             this.normal = normal;
             this.radius = radius;
             this.square_radius = Math.Pow(radius,2);
-            this.vertices[0] = center;
+            this.vertices = [center];
             this.shading = shading;
             p = new Plane(attributes, shading, normal, this.vertices[0]);
 

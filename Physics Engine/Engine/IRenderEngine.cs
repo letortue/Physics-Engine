@@ -6,12 +6,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Physics_Engine.Engine
+namespace Physics_Engine
 {
     public interface IRenderEngine
     {
 
         byte[] RenderImage(Scene scene);
+        void SetCamera(Camera camera);
+        void SetEngineConfig(Config_Engine engine_config);
         
 
     }
