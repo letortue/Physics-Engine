@@ -62,6 +62,7 @@ namespace Physics_Engine
         {
             if (engine_config.PreLoad) return null;
 
+            Console.Write("rotation");
             int dx = e.X - (engine_config.Image_res[0] / 2);
             int dy = e.Y - (engine_config.Image_res[1] / 2);
 

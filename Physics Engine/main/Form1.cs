@@ -30,7 +30,7 @@ namespace Physics_Engine
         {
             string json1 = File.ReadAllText("config_engine.json");
             Config_Engine engine_config = JsonSerializer.Deserialize<Config_Engine>(json1)!;
-            engine = new Engine(new Rasterizer(), new Camera(engine_config), engine_config);
+            engine = new Engine(new RayTracer(), new Camera(engine_config), engine_config);
             
             
 
@@ -212,7 +212,7 @@ namespace Physics_Engine
                 return (x + z) % 2 == 0 ? new Vec3(1,1,1) : new Vec3(0,0,0);
             }
             
-            Light[] lights = { new DistantLight(new Vec3(255, 0, 0), 1000, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 1005, new Vec3(01, -0.1, -0.5)) , new PointLight(new Vec3(0,7,20.1), new Vec3(255,255,255), 10000) , new SpotLight(new Vec3(10,0,0), new Vec3(255,10,255), 1000000, 0.3,new Vec3(0,-0.6,-1))};
+            Light[] lights = { new DistantLight(new Vec3(255, 0, 0), 1000, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 1005, new Vec3(01, -0.1, -0.5)) , new PointLight(new Vec3(3,0,0), new Vec3(255,255,255), 10000) , new SpotLight(new Vec3(10,0,0), new Vec3(255,10,255), 1000000, 0.3,new Vec3(0,-0.6,-1))};
             Ball ball1 = new Ball(new Vec3(0, 0, -10), 5, at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, isRefractive = true, refIndex = 1.05});
             Ball ball2 = new Ball(new Vec3(0, 0, -30), 5, at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 0, 0)], isInterpolatedAlbedo = false, isReflective = false });
             Plane plane1 = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, textureFunc = CheckerBoard }, new Vec3(0,1,0), new Vec3(0,-20,0));
@@ -241,7 +241,7 @@ namespace Physics_Engine
                 lambertian = true
             };
             Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj", import_attributes, import_shading, false);
-            SceneObject[] objects = { import };
+            SceneObject[] objects = { cube, plane1 };
             string json2 = File.ReadAllText("config_render.json");
             Config_Render render_config = JsonSerializer.Deserialize<Config_Render>(json2)!;
             Scene scene = new Scene(objects, lights, render_config);

@@ -105,7 +105,7 @@ namespace Physics_Engine
 
             for (int k = 1; k < rays.Length; k++)
             {
-                color += CastRay(scene, rays[k], scene.objects, 0, out HitResult hit, i, j);
+                color += CastRay(scene, rays[k], scene.objects, 0, out _, i, j);
                 num++;
             }
             color /= num;
@@ -120,6 +120,9 @@ namespace Physics_Engine
         {
             if (!result.hit)
             {
+                
+                
+                
                 byte colorX = (byte)Math.Clamp(color.X, 0, 255);
                 byte colorY = (byte)Math.Clamp(color.Y, 0, 255);
                 byte colorZ = (byte)Math.Clamp(color.Z, 0, 255);
@@ -408,6 +411,7 @@ namespace Physics_Engine
             if (o is Ball ball) return GetIntersectionPointBall(ball, r);
             if (o is Plane plane) return GetIntersectionPointPlane(plane, r);
             if (o is Disk disk) return GetIntersectionPointDisk(disk, r);
+            if (o is Triangle triangle) return GetIntersectionPointTriangle(triangle, r);
             else return new HitResult();
 
         }
