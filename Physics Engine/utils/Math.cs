@@ -457,15 +457,16 @@ namespace Physics_Engine
             }
             return m;
         }
-        public static Matrix4 ProjectionMatrix(Config_Render config)
+        public static Matrix4 ProjectionMatrix(Config_Render render_config, Config_Engine engine_config)
         {
+            double aspect = engine_config.Image_res[0] / engine_config.Image_res[1];
             Matrix4 m = new Matrix4();
             m[3, 2] = -1;
             m[3, 3] = 0;
-            m[2, 2] = -config.Clipping_range / (config.Clipping_range - 1); 
-            m[2, 3] = -config.Clipping_range / (config.Clipping_range - 1);
-            double f = 1 / Math.Tan(config.FOV / 2 / 57.2958D);
-            m[0, 0] = f;
+            m[2, 2] = -render_config.Clipping_range / (render_config.Clipping_range - 1); 
+            m[2, 3] = -render_config.Clipping_range / (render_config.Clipping_range - 1);
+            double f = 1 / Math.Tan(render_config.FOV / 2 / 57.2958D);
+            m[0, 0] = f / aspect;
             m[1, 1] = f;
             return m;
         }

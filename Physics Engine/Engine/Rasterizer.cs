@@ -212,7 +212,8 @@ namespace Physics_Engine
             }
             //if (z < 0) z = -z;
 
-            if (i == engine_config.Image_res[0] / 2 && j == engine_config.Image_res[1] / 2) Console.WriteLine($"z: {z} depth: {depths[j * engine_config.Image_res[0] + i]} 1st vertex: {t.vertices[0].Z}{t.vertices[1].Z}{t.vertices[2].Z} ");
+            if (i == engine_config.Image_res[0] / 2 && j == engine_config.Image_res[1] / 2) 
+                Console.WriteLine($"z: {z} depth: {depths[j * engine_config.Image_res[0] + i]} 1st vertex: {t.vertices[0].Z}{t.vertices[1].Z}{t.vertices[2].Z} ");
             if (z <= depths[j * engine_config.Image_res[0] + i])
             {
 
@@ -341,9 +342,8 @@ namespace Physics_Engine
 
 
 
-            Matrix4 projectionM = Matrix4.ProjectionMatrix(scene.render_config);
-            double f = 1 / Math.Tan(scene.render_config.FOV / 2 / 57.2958D);
-
+            Matrix4 projectionM = Matrix4.ProjectionMatrix(scene.render_config, engine_config);
+            
 
 
             Vec4 projected = new Vec4(vertex.X, vertex.Y, vertex.Z, 1);

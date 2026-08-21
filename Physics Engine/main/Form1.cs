@@ -4,7 +4,7 @@ namespace Physics_Engine
     using Aspose.ThreeD.Entities;
     using Aspose.ThreeD.Formats;
     using OpenTK.Graphics.OpenGL;
-    
+    using Physics_Engine.scene;
     using SkiaSharp;
     using SkiaSharp.Views.Desktop;
     using System.Collections.Generic;
@@ -13,6 +13,7 @@ namespace Physics_Engine
     using System.Linq.Expressions;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices.Marshalling;
+    using System.Security.Permissions;
     using System.Security.Policy;
     using System.Text.Json;
     using System.Windows.Forms;
@@ -23,6 +24,7 @@ namespace Physics_Engine
         public Engine engine;
         public Scene scene;
 
+        
         private SKControl skControl;
         public  SKCanvas canvas;
 
@@ -30,13 +32,27 @@ namespace Physics_Engine
         {
             string json1 = File.ReadAllText("config_engine.json");
             Config_Engine engine_config = JsonSerializer.Deserialize<Config_Engine>(json1)!;
-            engine = new Engine(new RayTracer(), new Camera(engine_config), engine_config);
-            
-            
+            Matrix4 pos = new Matrix4();
+            pos[0, 3] = -2;
+            pos[1, 3] = 1.3;
+            pos[2, 3] = 2;
+            Camera camera = new Camera(engine_config);
 
+            SaveConfig saveConfigLive = new SaveConfig();
+            bool PreLoad = true;
+            int FrameAmount = 1;
+            bool IsWrite = false;
+            bool IsRead = true;
+            bool IsPlayback = true;
+            bool IsRepeat = true;
+
+            SaveConfig saveConfigLoad = new SaveConfig(PreLoad, FrameAmount, IsWrite,IsRead,IsPlayback,IsRepeat);
             
+            engine = new Engine(new Rasterizer(), camera, engine_config, saveConfigLive);
+            engine.Camera.Rotate(0, -200);
+            engine.Camera.Rotate(1, 600);
             
-            
+                
 
             InitializeComponent();
 
@@ -212,7 +228,7 @@ namespace Physics_Engine
                 return (x + z) % 2 == 0 ? new Vec3(1,1,1) : new Vec3(0,0,0);
             }
             
-            Light[] lights = { new DistantLight(new Vec3(255, 0, 0), 1000, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 1005, new Vec3(01, -0.1, -0.5)) , new PointLight(new Vec3(3,0,0), new Vec3(255,255,255), 10000) , new SpotLight(new Vec3(10,0,0), new Vec3(255,10,255), 1000000, 0.3,new Vec3(0,-0.6,-1))};
+            Light[] lights = { new DistantLight(new Vec3(255, 0, 0), 10000, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 1005, new Vec3(01, -0.1, -0.5)) , new PointLight(new Vec3(-2,0,-1), new Vec3(255,255,255), 1000), new PointLight(new Vec3(2, -0.5, 1), new Vec3(0, 255, 255), 1000)  /*, new SpotLight(new Vec3(10,0,0), new Vec3(255,10,255), 1000000, 0.3,new Vec3(0,-0.6,-1)) */};
             Ball ball1 = new Ball(new Vec3(0, 0, -10), 5, at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, isRefractive = true, refIndex = 1.05});
             Ball ball2 = new Ball(new Vec3(0, 0, -30), 5, at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 0, 0)], isInterpolatedAlbedo = false, isReflective = false });
             Plane plane1 = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, textureFunc = CheckerBoard }, new Vec3(0,1,0), new Vec3(0,-20,0));
@@ -241,7 +257,7 @@ namespace Physics_Engine
                 lambertian = true
             };
             Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj", import_attributes, import_shading, false);
-            SceneObject[] objects = { cube, plane1 };
+            SceneObject[] objects = { import }; 
             string json2 = File.ReadAllText("config_render.json");
             Config_Render render_config = JsonSerializer.Deserialize<Config_Render>(json2)!;
             Scene scene = new Scene(objects, lights, render_config);
@@ -250,12 +266,32 @@ namespace Physics_Engine
             Timer timer = new Timer();
             timer.Interval = engine.engine_config.Interval;
 
+            SaveConfig saveConfig = new SaveConfig();
+            Save save = new Save("C:\\Users\\Marek\\source\\repos\\Physics Engine\\Physics Engine\\animation.bin",[1371, 771], "crane highres");
+            engine.Read(save);
 
             timer.Tick += (s, e) =>
             {
-                engine.TickUpdate(scene);
+                engine.TickUpdate(scene, save);
                 skControl.Invalidate();
-
+                /*
+                if(0 == Globals.TimeElapsed % 5)
+                {
+                    if (engine.Renderer is RayTracer)
+                    {
+                        engine.Renderer = new Rasterizer();
+                        engine.Renderer.SetCamera(engine.Camera);
+                        engine.Renderer.SetEngineConfig(engine_config);
+                    }
+                    else
+                    {
+                        engine.Renderer = new RayTracer();
+                        engine.Renderer.SetCamera(engine.Camera);
+                        engine.Renderer.SetEngineConfig(engine_config);
+                    }
+                }
+                */
+                
             };
             timer.Start();
             

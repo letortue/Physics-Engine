@@ -54,7 +54,7 @@ namespace Physics_Engine
 
                 for (double i = 0; i < engine_config.Image_res[0]; i++)
                 {
-
+                    Console.WriteLine($"Epoch: {Globals.Epoch++} / 1,057,628");
                     double sx = startX + i * stepX;
                     double sy = startY + j * stepY;
                     Ray[] rays = new Ray[scene.render_config.AntiAliasingRes * scene.render_config.AntiAliasingRes];
@@ -170,8 +170,10 @@ namespace Physics_Engine
 
             hit = result;
 
-            if (!result.hit) return backgroundColor;
-
+            if (!result.hit)
+            {
+                return backgroundColor;
+            }
 
             if (result.o.shading.isReflective)
             {

@@ -1,16 +1,8 @@
 ﻿{
-  "Image_res": [ 200, 100 ],
+  "Image_res": [ 1371, 771 ],
   "Interval": 17,
   "Canvas_res": [ 2, 2 ],
-  "Sensitivity": 0.001,
-  "PreLoad": false,
-  "FrameAmount": 10,
-  "ReadRenderPath": "C:\\Users\\Marek\\source\\repos\\Physics Engine\\Physics Engine\\animation.bin",
-  "WriteRenderPath": "C:\\Users\\Marek\\source\\repos\\Physics Engine\\Physics Engine\\animation.bin",
-  "IsWrite": false,
-  "IsRead": true,
-  "IsPlayback": true,
-  "IsRepeat": true
+  "Sensitivity": 0.001
  
 
 

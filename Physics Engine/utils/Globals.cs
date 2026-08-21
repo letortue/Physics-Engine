@@ -23,6 +23,6 @@ namespace Physics_Engine
         public static Camera Camera = new Camera(Camera.CreateCameraMatrix(CameraData));
         */
         public static int TimeElapsed = 0;
-        
+        public static int Epoch = 0;
     }
 }

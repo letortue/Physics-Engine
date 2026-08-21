@@ -1,5 +1,6 @@
 ﻿using Aspose.ThreeD.Entities;
 using Aspose.ThreeD.Formats;
+using Physics_Engine.scene;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
@@ -14,16 +15,19 @@ namespace Physics_Engine
         List<byte[]> frames = new List<byte[]>();
         private int frameIndex = 0;
         private bool RenderFinished = false;
-        private bool ReadFinished = false;
         private bool WriteFinished = false;
-        public IRenderEngine Renderer;
-        private Camera Camera;
         private int renderFrame;
+
+        
+        public SaveConfig saveConfig;
+        public IRenderEngine Renderer;
+        public Camera Camera;
         public Config_Engine engine_config;
         
         Dictionary<string, bool> keysPressed = new Dictionary<string, bool>();
-        public Engine(IRenderEngine Renderer, Camera Camera, Config_Engine engine_config)
+        public Engine(IRenderEngine Renderer, Camera Camera, Config_Engine engine_config, SaveConfig saveConfig)
         {
+            this.saveConfig = saveConfig;
             this.Renderer = Renderer;
             this.Camera = Camera;
             this.engine_config = engine_config;
@@ -39,28 +43,28 @@ namespace Physics_Engine
         }
         public void Paint(SKCanvas canvas)
         {
-            if (engine_config.PreLoad == false)
+            if (!saveConfig.PreLoad)
             {
                 SKBitmap map = new SKBitmap(engine_config.Image_res[0], engine_config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
                 if (frames.Count != 0) System.Runtime.InteropServices.Marshal.Copy(frames[frameIndex - 1], 0, map.GetPixels(), frames[frameIndex - 1].Length);
                 if (frames.Count != 0) canvas.DrawBitmap(map,0,0);
+                return;
             }
-            else
+            
+            if (RenderFinished && saveConfig.IsPlayback)
             {
-                if (RenderFinished && engine_config.IsPlayback)
-                {
-                    SKBitmap map = new SKBitmap(engine_config.Image_res[0], engine_config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
-                    System.Runtime.InteropServices.Marshal.Copy(frames[renderFrame], 0, map.GetPixels(), frames[renderFrame].Length);
-                    canvas.DrawBitmap(map, 0, 0);
-                    if (renderFrame < engine_config.FrameAmount - 1) renderFrame++;
+                SKBitmap map = new SKBitmap(engine_config.Image_res[0], engine_config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
+                System.Runtime.InteropServices.Marshal.Copy(frames[renderFrame], 0, map.GetPixels(), frames[renderFrame].Length);
+                canvas.DrawBitmap(map, 0, 0);
+                if (renderFrame < saveConfig.FrameAmount - 1) renderFrame++;
 
 
-                }
             }
+            
         }
         public Point? MouseMove(MouseEventArgs e)
         {
-            if (engine_config.PreLoad) return null;
+            if (saveConfig.PreLoad) return null;
 
             Console.Write("rotation");
             int dx = e.X - (engine_config.Image_res[0] / 2);
@@ -75,7 +79,7 @@ namespace Physics_Engine
         }
         public bool KeyDown(KeyEventArgs e)
         {
-            if (engine_config.PreLoad) return true;
+            if (saveConfig.PreLoad) return true;
             switch (e.KeyCode)
             {
                 case Keys.W:
@@ -102,7 +106,7 @@ namespace Physics_Engine
         }
         public bool KeyUp(KeyEventArgs e)
         {
-            if (engine_config.PreLoad) return true;
+            if (saveConfig.PreLoad) return true;
             switch (e.KeyCode)
             {
                 case Keys.W:
@@ -129,6 +133,7 @@ namespace Physics_Engine
 
 
         }
+        /*
         public void Read()
         {
             string? dir = Path.GetDirectoryName(engine_config.ReadRenderPath);
@@ -148,13 +153,33 @@ namespace Physics_Engine
                 reader.Close();
             }
         }
-        public void TickUpdate(Scene scene)
+        */
+        public void Read(Save save)
+        {
+            string? dir = Path.GetDirectoryName(save.filepath);
+
+            if (!string.IsNullOrEmpty(dir) && saveConfig.IsRead)
+            {
+                RenderFinished = true;
+                BinaryReader reader = new BinaryReader(File.Open(save.filepath, FileMode.Open));
+
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                {
+                    int length = reader.ReadInt32();  // read frame size
+                    byte[] frame = reader.ReadBytes(length); // read frame data
+
+                    frames.Add(frame);
+                }
+                reader.Close();
+            }
+        }
+        public void TickUpdate(Scene scene, Save save)
         {
 
-            if ((frameIndex >= engine_config.FrameAmount) && engine_config.PreLoad) RenderFinished = true;
+            if ((frameIndex >= saveConfig.FrameAmount) && saveConfig.PreLoad) RenderFinished = true;
             if (!RenderFinished)
             {
-                if (!engine_config.PreLoad)
+                if (!saveConfig.PreLoad)
                 {
                     if (keysPressed["W"]) Camera.Move(new Vec3(0, 0, -scene.render_config.Movement_speed));
                     if (keysPressed["A"]) Camera.Move(new Vec3(-scene.render_config.Movement_speed, 0, 0));
@@ -170,10 +195,10 @@ namespace Physics_Engine
                 frameIndex++;
             }
 
-            if (RenderFinished && !WriteFinished && engine_config.IsWrite)
+            if (RenderFinished && !WriteFinished && saveConfig.IsWrite)
             {
-                BinaryWriter writer = new BinaryWriter(File.Open(engine_config.WriteRenderPath, FileMode.Create));
-                string? dir = Path.GetDirectoryName(engine_config.WriteRenderPath);
+                BinaryWriter writer = new BinaryWriter(File.Open(save.filepath, FileMode.Create));
+                string? dir = Path.GetDirectoryName(save.filepath);
                 if (!string.IsNullOrEmpty(dir))
                 {
                     Directory.CreateDirectory(dir);
