@@ -41,7 +41,7 @@ namespace Physics_Engine
             keysPressed.Add("SPACE", false);
             
         }
-        public void Paint(SKCanvas canvas)
+        public void Paint(SKCanvas canvas, Save? save)
         {
             if (!saveConfig.PreLoad)
             {
@@ -53,7 +53,7 @@ namespace Physics_Engine
             
             if (RenderFinished && saveConfig.IsPlayback)
             {
-                SKBitmap map = new SKBitmap(engine_config.Image_res[0], engine_config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
+                SKBitmap map = new SKBitmap(save.resolution[0], save.resolution[1], SKColorType.Bgra8888, SKAlphaType.Premul);
                 System.Runtime.InteropServices.Marshal.Copy(frames[renderFrame], 0, map.GetPixels(), frames[renderFrame].Length);
                 canvas.DrawBitmap(map, 0, 0);
                 if (renderFrame < saveConfig.FrameAmount - 1) renderFrame++;
@@ -154,8 +154,9 @@ namespace Physics_Engine
             }
         }
         */
-        public void Read(Save save)
+        public void Read(Save? save)
         {
+            if (save is null) return;
             string? dir = Path.GetDirectoryName(save.filepath);
 
             if (!string.IsNullOrEmpty(dir) && saveConfig.IsRead)
@@ -173,7 +174,7 @@ namespace Physics_Engine
                 reader.Close();
             }
         }
-        public void TickUpdate(Scene scene, Save save)
+        public void TickUpdate(Scene scene, Save? save)
         {
 
             if ((frameIndex >= saveConfig.FrameAmount) && saveConfig.PreLoad) RenderFinished = true;

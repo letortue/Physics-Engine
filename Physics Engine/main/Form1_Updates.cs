@@ -18,7 +18,7 @@ namespace Physics_Engine
 
             canvas = e.Surface.Canvas;
             canvas.Clear(SKColors.Black);
-            engine.Paint(canvas);
+            engine.Paint(canvas, save);
 
 
         }

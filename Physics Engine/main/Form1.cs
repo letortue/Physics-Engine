@@ -23,11 +23,11 @@ namespace Physics_Engine
     {
         public Engine engine;
         public Scene scene;
-
+        public Save? save = null;
         
         private SKControl skControl;
         public  SKCanvas canvas;
-
+        private SaveConfig saveConfig;
         public Form1()
         {
             string json1 = File.ReadAllText("config_engine.json");
@@ -47,10 +47,14 @@ namespace Physics_Engine
             bool IsRepeat = true;
 
             SaveConfig saveConfigLoad = new SaveConfig(PreLoad, FrameAmount, IsWrite,IsRead,IsPlayback,IsRepeat);
+
+            saveConfig = saveConfigLoad;
+
+            save = new Save("C:\\Users\\Marek\\source\\repos\\Physics Engine\\Physics Engine\\animation.bin", [1371, 771], "crane highres");
+
+            engine = new Engine(new RayTracer(), camera, engine_config, saveConfig);
             
-            engine = new Engine(new Rasterizer(), camera, engine_config, saveConfigLive);
-            engine.Camera.Rotate(0, -200);
-            engine.Camera.Rotate(1, 600);
+            
             
                 
 
@@ -70,7 +74,11 @@ namespace Physics_Engine
             Controls.Add(skControl);
 
 
-
+            if(save is not null && saveConfig.PreLoad)
+            {
+                skControl.Size = new Size(save.resolution[0], save.resolution[1]);
+                this.ClientSize = new Size(save.resolution[0], save.resolution[1]);
+            }
 
             
 
@@ -257,7 +265,7 @@ namespace Physics_Engine
                 lambertian = true
             };
             Mesh import = FileReader.ReadOBJ("C:/Users/Marek/Downloads/kenney_factory-kit_3.0/Models/OBJ format/crane.obj", import_attributes, import_shading, false);
-            SceneObject[] objects = { import }; 
+            SceneObject[] objects = { cube }; 
             string json2 = File.ReadAllText("config_render.json");
             Config_Render render_config = JsonSerializer.Deserialize<Config_Render>(json2)!;
             Scene scene = new Scene(objects, lights, render_config);
@@ -266,8 +274,9 @@ namespace Physics_Engine
             Timer timer = new Timer();
             timer.Interval = engine.engine_config.Interval;
 
-            SaveConfig saveConfig = new SaveConfig();
-            Save save = new Save("C:\\Users\\Marek\\source\\repos\\Physics Engine\\Physics Engine\\animation.bin",[1371, 771], "crane highres");
+            
+            
+            
             engine.Read(save);
 
             timer.Tick += (s, e) =>
