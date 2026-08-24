@@ -81,7 +81,7 @@
             shading.facing_ratio = facing_ratio;
             
 
-            Mesh mesh = new Mesh(vertices.ToArray(), attributes, shading, faceNormals.ToArray(), faces.ToArray(), indices.ToArray(),clockwiseWinding);
+            Mesh mesh = new Mesh(new Transform(), vertices.ToArray(), attributes, shading, faceNormals.ToArray(), faces.ToArray(), indices.ToArray(),clockwiseWinding);
 
             return mesh;
 

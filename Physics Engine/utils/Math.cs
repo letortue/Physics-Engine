@@ -470,6 +470,31 @@ namespace Physics_Engine
             m[1, 1] = f;
             return m;
         }
+        public static Matrix4 CreateScale(double factor)
+        {
+            
+            Matrix4 m = new Matrix4();
+
+            
+            m.data[0, 0] = factor;
+            m.data[1, 1] = factor;
+            m.data[2, 2] = factor;
+
+            
+            return m;
+        }
+        public static Matrix4 CreateTranslation(Vec3 position)
+        {
+            
+            Matrix4 m = new Matrix4();
+
+            
+            m.data[0, 3] = position.X;
+            m.data[1, 3] = position.Y;
+            m.data[2, 3] = position.Z;
+
+            return m;
+        }
         public static Matrix4 RotationMatrix(int axis, double degrees)
         {
             Matrix4 m = new Matrix4();

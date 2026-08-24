@@ -17,7 +17,7 @@ namespace Physics_Engine
         private bool RenderFinished = false;
         private bool WriteFinished = false;
         private int renderFrame;
-
+        private bool isNullSave = false;
         
         public SaveConfig saveConfig;
         public IRenderEngine Renderer;
@@ -43,6 +43,9 @@ namespace Physics_Engine
         }
         public void Paint(SKCanvas canvas, Save? save)
         {
+            
+
+
             if (!saveConfig.PreLoad)
             {
                 SKBitmap map = new SKBitmap(engine_config.Image_res[0], engine_config.Image_res[1], SKColorType.Bgra8888, SKAlphaType.Premul);
@@ -53,6 +56,8 @@ namespace Physics_Engine
             
             if (RenderFinished && saveConfig.IsPlayback)
             {
+                if (isNullSave) return;
+                if (save is null) { isNullSave = true; Console.WriteLine("Save is null"); return; }
                 SKBitmap map = new SKBitmap(save.resolution[0], save.resolution[1], SKColorType.Bgra8888, SKAlphaType.Premul);
                 System.Runtime.InteropServices.Marshal.Copy(frames[renderFrame], 0, map.GetPixels(), frames[renderFrame].Length);
                 canvas.DrawBitmap(map, 0, 0);
@@ -66,7 +71,7 @@ namespace Physics_Engine
         {
             if (saveConfig.PreLoad) return null;
 
-            Console.Write("rotation");
+            //Console.Write("rotation");
             int dx = e.X - (engine_config.Image_res[0] / 2);
             int dy = e.Y - (engine_config.Image_res[1] / 2);
 
@@ -220,16 +225,11 @@ namespace Physics_Engine
         {
 
             double t = (float)engine_config.Interval / 1000;
-            for (int j = 0; j < o.vertices.Length; j++)
+            foreach (Vec3 vertex in o.transformedVertices)
             {
-
-
-                o.attributes.velocity[j].X += t * o.attributes.acceleration[j].X;
-                o.vertices[j].X += t * o.attributes.velocity[j].X * pixelsPerMeter;
-                o.attributes.velocity[j].Y += t * o.attributes.acceleration[j].Y;
-                o.vertices[j].Y += t * o.attributes.velocity[j].Y * pixelsPerMeter;
-                o.attributes.velocity[j].Z += t * o.attributes.acceleration[j].Z;
-                o.vertices[j].Z += t * o.attributes.velocity[j].Z * pixelsPerMeter;
+                
+                
+               
                 //ObjectToWorldMatrix[0, 3] += t * o.attributes.velocity[j].X * pixelsPerMeter;
                 //ObjectToWorldMatrix[1, 3] += t * o.attributes.velocity[j].Y * pixelsPerMeter;
                 //ObjectToWorldMatrix[2, 3] += t * o.attributes.velocity[j].Z * pixelsPerMeter;

@@ -28,7 +28,19 @@ namespace Physics_Engine
         {
             
 
-            
+            foreach(SceneObject obj in scene.objects)
+            {
+                
+                for (int i = 0; i < obj.transformedVertices.Length; i++)
+                {
+                    Vec4 v = new Vec4(obj.vertices[i].X, obj.vertices[i].Y, obj.vertices[i].Z, 1);
+                    v = obj.transform.GetModelMatrix() * v;
+                    obj.transformedVertices[i] = new Vec3(v.X, v.Y, v.Z);
+                }
+                
+                
+                if (obj is Mesh mesh) mesh.Update();
+            }
 
 
             Vec3 camWorldPos = new Vec3
@@ -217,7 +229,7 @@ namespace Physics_Engine
 
             if (result.o is Ball ball)
             {
-                double exitT = FindExitT(ball.vertices[0], result.point, refractionRay.direction, ball.radius);
+                double exitT = FindExitT(ball.transformedVertices[0], result.point, refractionRay.direction, ball.radius);
                 if (exitT < 0)
                 {
                     refractionRay.direction = (R.direction - (2 * (result.normal.Dot(R.direction)) * result.normal)).Normalize();
@@ -225,7 +237,7 @@ namespace Physics_Engine
                     return refractionRay;
                 }
                 Vec3 exitPoint = result.point + exitT * refractionRay.direction;
-                Vec3 exitNormal = 0 - (exitPoint - ball.vertices[0]).Normalize();
+                Vec3 exitNormal = 0 - (exitPoint - ball.transformedVertices[0]).Normalize();
 
 
                 double n2 = result.o.shading.refIndex / 1.0;
@@ -435,7 +447,7 @@ namespace Physics_Engine
         public HitResult GetIntersectionPointBall(Ball ball, Ray r)
         {
 
-            Vec3 L = r.origin - ball.vertices[0];
+            Vec3 L = r.origin - ball.transformedVertices[0];
             Vec3 dir = r.direction;
             HitResult result = new HitResult();
             result.color = ball.attributes.colors[0];
@@ -457,7 +469,7 @@ namespace Physics_Engine
 
                     result.point = r.origin + (double)t1 * dir;
                     result.albedo = ball.shading.textureFunc is not null ? ball.shading.textureFunc(result.point) : ball.shading.albedo[0];
-                    result.normal = (result.point - ball.vertices[0]).Normalize();
+                    result.normal = (result.point - ball.transformedVertices[0]).Normalize();
                     result.t = (double)t1;
                     return result;
                 }
@@ -467,14 +479,14 @@ namespace Physics_Engine
                     {
                         result.point = r.origin + (double)t1 * dir;
                         result.albedo = ball.shading.textureFunc is not null ? ball.shading.textureFunc(result.point) : ball.shading.albedo[0];
-                        result.normal = (result.point - ball.vertices[0]).Normalize();
+                        result.normal = (result.point - ball.transformedVertices[0]).Normalize();
                         result.t = (double)t1;
                     }
                     else
                     {
                         result.point = r.origin + (double)t2 * dir;
                         result.albedo = ball.shading.textureFunc is not null ? ball.shading.textureFunc(result.point) : ball.shading.albedo[0];
-                        result.normal = (result.point - ball.vertices[0]).Normalize();
+                        result.normal = (result.point - ball.transformedVertices[0]).Normalize();
                         result.t = (double)t2;
                     }
 
@@ -520,13 +532,13 @@ namespace Physics_Engine
                 return result;
             }
 
-            Vec3 v = result.point - disk.vertices[0];
+            Vec3 v = result.point - disk.transformedVertices[0];
             double d2 = v.Dot(v);
 
             if (d2 <= disk.square_radius)
             {
 
-                result.t = (disk.vertices[0] - r.origin).Dot(disk.normal) / denom;
+                result.t = (disk.transformedVertices[0] - r.origin).Dot(disk.normal) / denom;
                 if (result.t < 0) { result.hit = false; return result; }
                 result.normal = disk.normal;
                 result.hit = true;
@@ -548,7 +560,7 @@ namespace Physics_Engine
         }
         public HitResult GetIntersectionPointTriangle(Triangle triangle, Ray r)
         {
-            Vec3 tuv = Maths.CramersRule(r, triangle.vertices);
+            Vec3 tuv = Maths.CramersRule(r, triangle.transformedVertices);
             double w0 = 1 - tuv[1] - tuv[2];
             double w1 = tuv[1];
             double w2 = tuv[2];

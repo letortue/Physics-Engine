@@ -30,10 +30,22 @@ namespace Physics_Engine
             Array.Fill(depths, double.PositiveInfinity);
 
             Matrix4 inverse = camera.matrix.InverseRotationPart();
+
+            
             foreach (SceneObject obj in scene.objects)
             {
+
+
+                for (int i = 0; i < obj.transformedVertices.Length; i++)
+                {
+                    Vec4 v = new Vec4(obj.vertices[i].X, obj.vertices[i].Y, obj.vertices[i].Z, 1);
+                    v = obj.transform.GetModelMatrix() * v;
+                    obj.transformedVertices[i] = new Vec3(v.X, v.Y, v.Z);
+                }
+
+
                 if (obj is Triangle triangle) HandleTriangle(scene, depths, pixels, triangle, inverse);
-                if (obj is Mesh mesh) HandleMesh(scene, depths, pixels, mesh, inverse);
+                if (obj is Mesh mesh) { mesh.Update();  HandleMesh(scene, depths, pixels, mesh, inverse); }
 
 
 
@@ -95,7 +107,7 @@ namespace Physics_Engine
 
             foreach (Triangle t in mesh.triangles)
             {
-                Vec3 centroid = (t.vertices[0] + t.vertices[1] + t.vertices[2]) / 3.0;
+                Vec3 centroid = (t.transformedVertices[0] + t.transformedVertices[1] + t.transformedVertices[2]) / 3.0;
                 Vec3 viewDir = (centroid - new Vec3(camera.matrix[0, 3], camera.matrix[1, 3], camera.matrix[2, 3])).Normalize();
 
                 if (viewDir.Dot(t.normal) > 0 && mesh.shading.oneSided == true) continue;
@@ -108,12 +120,12 @@ namespace Physics_Engine
         public void HandleTriangle(Scene scene, double[] depths, byte[] pixels, Triangle t, Matrix4 inverse)
         {
 
-            Vec3[] vertsproj = new Vec3[t.vertices.Length];
-            Vec3[] colors = new Vec3[t.vertices.Length];
+            Vec3[] vertsproj = new Vec3[t.transformedVertices.Length];
+            Vec3[] colors = new Vec3[t.transformedVertices.Length];
 
-            for (int i = 0; i < t.vertices.Length; i++)
+            for (int i = 0; i < t.transformedVertices.Length; i++)
             {
-                Vec4 v = new Vec4(t.vertices[i].X, t.vertices[i].Y, t.vertices[i].Z, 1);
+                Vec4 v = new Vec4(t.transformedVertices[i].X, t.transformedVertices[i].Y, t.transformedVertices[i].Z, 1);
                 v = inverse * v;
                 vertsproj[i] = new Vec3(v.X, v.Y, v.Z);
                 colors[i] = t.attributes.colors[i];
@@ -174,7 +186,7 @@ namespace Physics_Engine
 
                     if (area < 0)
                         continue;
-                    if (i == engine_config.Image_res[0] / 2 && j == engine_config.Image_res[1] / 2 && Globals.TimeElapsed > 100 && (t.vertices[0].X == -1 && t.vertices[0].Y == -1 && t.vertices[0].Z == -3 && t.vertices[1].X == 1))
+                    if (i == engine_config.Image_res[0] / 2 && j == engine_config.Image_res[1] / 2 && Globals.TimeElapsed > 100 && (t.transformedVertices[0].X == -1 && t.transformedVertices[0].Y == -1 && t.transformedVertices[0].Z == -3 && t.transformedVertices[1].X == 1))
                     {
                         int a = 0;
                     }
@@ -213,7 +225,7 @@ namespace Physics_Engine
             //if (z < 0) z = -z;
 
             if (i == engine_config.Image_res[0] / 2 && j == engine_config.Image_res[1] / 2) 
-                Console.WriteLine($"z: {z} depth: {depths[j * engine_config.Image_res[0] + i]} 1st vertex: {t.vertices[0].Z}{t.vertices[1].Z}{t.vertices[2].Z} ");
+                Console.WriteLine($"z: {z} depth: {depths[j * engine_config.Image_res[0] + i]} 1st vertex: {t.transformedVertices[0].Z}{t.transformedVertices[1].Z}{t.transformedVertices[2].Z} ");
             if (z <= depths[j * engine_config.Image_res[0] + i])
             {
 

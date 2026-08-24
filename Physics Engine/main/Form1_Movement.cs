@@ -16,7 +16,7 @@ namespace Physics_Engine
         }
         public void OnKeyDown(object sender, KeyEventArgs e)
         {
-            Console.WriteLine("3");
+            //Console.WriteLine("3");
             if (engine.KeyDown(e)) return;
 
         }

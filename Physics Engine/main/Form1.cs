@@ -48,11 +48,13 @@ namespace Physics_Engine
 
             SaveConfig saveConfigLoad = new SaveConfig(PreLoad, FrameAmount, IsWrite,IsRead,IsPlayback,IsRepeat);
 
-            saveConfig = saveConfigLoad;
+
+
+            saveConfig = saveConfigLive;
 
             save = new Save("C:\\Users\\Marek\\source\\repos\\Physics Engine\\Physics Engine\\animation.bin", [1371, 771], "crane highres");
 
-            engine = new Engine(new RayTracer(), camera, engine_config, saveConfig);
+            engine = new Engine(new Rasterizer(), camera, engine_config, saveConfig);
             
             
             
@@ -215,7 +217,7 @@ namespace Physics_Engine
 
             };
 
-            Mesh cube = new Mesh(vertices, atts, shading, normals, faces, indices, true);
+            Mesh cube = new Mesh(new Transform(4, 0, 1, new Vec3(0.5,0,0)),vertices, atts, shading, normals, faces, indices, true);
 
             Vec3[] c = { new Vec3(255, 255, 255), new Vec3(255, 255, 255), new Vec3(255, 255, 255) };
             Vec3[] v = { new Vec3(-0.1, 0, 0), new Vec3(-0.1, 0, 0), new Vec3(-0.1, 0, 0) };
@@ -237,11 +239,11 @@ namespace Physics_Engine
             }
             
             Light[] lights = { new DistantLight(new Vec3(255, 0, 0), 10000, new Vec3(0, 0, 1))  ,  new DistantLight(new Vec3(255, 255, 255), 1005, new Vec3(01, -0.1, -0.5)) , new PointLight(new Vec3(-2,0,-1), new Vec3(255,255,255), 1000), new PointLight(new Vec3(2, -0.5, 1), new Vec3(0, 255, 255), 1000)  /*, new SpotLight(new Vec3(10,0,0), new Vec3(255,10,255), 1000000, 0.3,new Vec3(0,-0.6,-1)) */};
-            Ball ball1 = new Ball(new Vec3(0, 0, -10), 5, at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, isRefractive = true, refIndex = 1.05});
-            Ball ball2 = new Ball(new Vec3(0, 0, -30), 5, at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 0, 0)], isInterpolatedAlbedo = false, isReflective = false });
-            Plane plane1 = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, textureFunc = CheckerBoard }, new Vec3(0,1,0), new Vec3(0,-20,0));
-            Plane plane2 = new Plane(at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = true, oneSided = false }, new Vec3(1,0,0), new Vec3(-40,0,0));
-            Disk disk = new Disk(new Vec3(-15,5,0), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false }, new Vec3(0,1,1), 10);
+            Ball ball1 = new Ball(new Transform(), new Vec3(0, 0, -10), 5, at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, isRefractive = true, refIndex = 1.05});
+            Ball ball2 = new Ball(new Transform(), new Vec3(0, 0, -30), 5, at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 0, 0)], isInterpolatedAlbedo = false, isReflective = false });
+            Plane plane1 = new Plane(new Transform(), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = false, textureFunc = CheckerBoard }, new Vec3(0,1,0), new Vec3(0,-20,0));
+            Plane plane2 = new Plane(new Transform(), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false, isReflective = true, oneSided = false }, new Vec3(1,0,0), new Vec3(-40,0,0));
+            Disk disk = new Disk(new Transform(), new Vec3(-15,5,0), at, new ShadingAttributes { facing_ratio = [false], albedo = [new Vec3(1, 1, 1)], isInterpolatedAlbedo = false }, new Vec3(0,1,1), 10);
             VertexAttributes import_attributes = new VertexAttributes
             {
                 colors = [new Vec3(255,255,255)],

@@ -139,8 +139,11 @@ namespace Physics_Engine
     public abstract class SceneObject
     {
         public Vec3[] vertices { get; set; }
+        public Vec3[] transformedVertices { get; set; }
         public VertexAttributes attributes;
         public ShadingAttributes shading;
+        public Transform transform;
+        public Vec3 offset;
         
     }
 
@@ -156,15 +159,51 @@ namespace Physics_Engine
         public double[,] tIndices { get; set; }
         public Triangle[] triangles { get; set; }
         public int nfaces { get; set; }
-        
+        bool clockwiseWinding;
 
-        public Mesh(Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, Vec3[] normals, int[] faces, int[] indices, bool clockwiseWinding = true)
+
+        public Mesh(Transform transform, Vec3[] vertices, VertexAttributes attributes, ShadingAttributes shading, Vec3[] normals, int[] faces, int[] indices, bool clockwiseWinding = true)
         {
+            this.transform = transform;
+            
             this.vertices = vertices;
             this.faces = faces;
             this.vertexIndices = indices;
             this.attributes = attributes;
             this.shading = shading;
+            this.clockwiseWinding = clockwiseWinding;
+            transformedVertices = new Vec3[vertices.Length];
+
+            double xmax = vertices[0].X;
+            double xmin = vertices[0].X;
+            double ymax = vertices[0].Y;
+            double ymin = vertices[0].Y;
+            double zmax = vertices[0].Z;
+            double zmin = vertices[0].Z;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                if (vertices[i].X > xmax) xmax = vertices[i].X;
+                if (vertices[i].X < xmin) xmin = vertices[i].X;
+                if (vertices[i].Y > ymax) ymax = vertices[i].Y;
+                if (vertices[i].Y < ymin) ymin = vertices[i].Y;
+                if (vertices[i].Z > zmax) zmax = vertices[i].Z;
+                if (vertices[i].Z < zmin) zmin = vertices[i].Z;
+                
+
+            }
+            offset = new Vec3((xmax + xmin)/2, (ymax + ymin)/2, (zmax + zmin )/2);
+            transform.position += offset;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] = vertices[i] - offset;
+            }
+            for (int i = 0; i < transformedVertices.Length; i++)
+            {
+                Vec4 v = new Vec4(vertices[i].X, vertices[i].Y, vertices[i].Z, 1);
+                v = transform.GetModelMatrix() * v;
+                transformedVertices[i] = new Vec3(v.X, v.Y, v.Z);
+            }
+            
 
             this.nfaces = faces.Length;
             this.nTriangles = 0;
@@ -192,16 +231,16 @@ namespace Physics_Engine
                     int vi0, vi1, vi2;
                     if (!clockwiseWinding) { vi2 = vertexIndices[start]; vi1 = vertexIndices[start + j + 1]; vi0 = vertexIndices[start + j + 2]; }
                     else { vi0 = vertexIndices[start]; vi1 = vertexIndices[start + j + 1]; vi2 = vertexIndices[start + j + 2]; }
-                    Vec3[] triangleVerts = { vertices[vi0], vertices[vi1], vertices[vi2] };
+                    Vec3[] triangleVerts = { transformedVertices[vi0], transformedVertices[vi1], transformedVertices[vi2] };
                     VertexAttributes atts = TVAtts(attributes, vi0, vi1, vi2);
                     ShadingAttributes sh = TShAtts(shading, i);
                     tIndices[triIndex, 0] = vi0;
                     tIndices[triIndex, 1] = vi1;
                     tIndices[triIndex, 2] = vi2;
-                    Vec3 edge1 = vertices[vi1] - vertices[vi0];
-                    Vec3 edge2 = vertices[vi2] - vertices[vi0];
+                    Vec3 edge1 = transformedVertices[vi1] - transformedVertices[vi0];
+                    Vec3 edge2 = transformedVertices[vi2] - transformedVertices[vi0];
                     Vec3 faceNormal = edge2.Cross(edge1).Normalize();
-                    triangles.Add(new Triangle(triangleVerts, faceNormal, atts, sh));
+                    triangles.Add(new Triangle(transform, triangleVerts, faceNormal, atts, sh, true));
 
 
                 }
@@ -210,7 +249,62 @@ namespace Physics_Engine
             }
             this.triangles = [.. triangles];
         }
+        public void Update()
+        {
+            transformedVertices = new Vec3[vertices.Length];
+            
+            for (int i = 0; i < transformedVertices.Length; i++)
+            {
+                Vec4 v = new Vec4(vertices[i].X, vertices[i].Y, vertices[i].Z, 1);
+                v = transform.GetModelMatrix() * v;
+                transformedVertices[i] = new Vec3(v.X, v.Y, v.Z);
+            }
+            
 
+            this.nfaces = faces.Length;
+            this.nTriangles = 0;
+
+            for (int i = 0; i < nfaces; i++)
+            {
+                if (faces[i] > 2)
+                {
+                    this.nTriangles += (faces[i] - 2);
+                }
+            }
+            this.tIndices = new double[nTriangles, 3];
+
+            List<Triangle> triangles = new List<Triangle>();
+            int start = 0;
+            int triIndex = 0;
+            for (int i = 0; i < nfaces; i++)
+            {
+                for (int j = 0; (j + 2) < faces[i]; j++)
+                {
+                    if (triangles.Count == 7)
+                    {
+                        int a = 0;
+                    }
+                    int vi0, vi1, vi2;
+                    if (!clockwiseWinding) { vi2 = vertexIndices[start]; vi1 = vertexIndices[start + j + 1]; vi0 = vertexIndices[start + j + 2]; }
+                    else { vi0 = vertexIndices[start]; vi1 = vertexIndices[start + j + 1]; vi2 = vertexIndices[start + j + 2]; }
+                    Vec3[] triangleVerts = { transformedVertices[vi0], transformedVertices[vi1], transformedVertices[vi2] };
+                    VertexAttributes atts = TVAtts(attributes, vi0, vi1, vi2);
+                    ShadingAttributes sh = TShAtts(shading, i);
+                    tIndices[triIndex, 0] = vi0;
+                    tIndices[triIndex, 1] = vi1;
+                    tIndices[triIndex, 2] = vi2;
+                    Vec3 edge1 = transformedVertices[vi1] - transformedVertices[vi0];
+                    Vec3 edge2 = transformedVertices[vi2] - transformedVertices[vi0];
+                    Vec3 faceNormal = edge2.Cross(edge1).Normalize();
+                    triangles.Add(new Triangle(transform, triangleVerts, faceNormal, atts, sh, true));
+
+
+                }
+                start += faces[i];
+                triIndex++;
+            }
+            this.triangles = [.. triangles];
+        }
         
         public static VertexAttributes TVAtts(VertexAttributes attributes, int vi0, int vi1, int vi2)
         {
@@ -241,14 +335,48 @@ namespace Physics_Engine
     {
         public double radius { get; set; }
 
-        public Ball(Vec3 center, double radius, VertexAttributes attributes, ShadingAttributes shading)
+        public Ball(Transform transform, Vec3 center, double radius, VertexAttributes attributes, ShadingAttributes shading)
         {
-            
+            this.transform = transform;
+ 
             this.attributes = attributes;
             this.vertices = [center];
             this.radius = radius;
             this.shading = shading;
 
+            transformedVertices = new Vec3[vertices.Length];
+
+            double xmax = vertices[0].X;
+            double xmin = vertices[0].X;
+            double ymax = vertices[0].Y;
+            double ymin = vertices[0].Y;
+            double zmax = vertices[0].Z;
+            double zmin = vertices[0].Z;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                if (vertices[i].X > xmax) xmax = vertices[i].X;
+                if (vertices[i].X < xmin) xmin = vertices[i].X;
+                if (vertices[i].Y > ymax) ymax = vertices[i].Y;
+                if (vertices[i].Y < ymin) ymin = vertices[i].Y;
+                if (vertices[i].Z > zmax) zmax = vertices[i].Z;
+                if (vertices[i].Z < zmin) zmin = vertices[i].Z;
+
+
+            }
+            offset = new Vec3((xmax + xmin) / 2, (ymax + ymin) / 2, (zmax + zmin) / 2);
+            transform.position += offset;
+            
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] = vertices[i] - offset;
+            }
+            for (int i = 0; i < transformedVertices.Length; i++)
+            {
+                Vec4 v = new Vec4(vertices[i].X, vertices[i].Y, vertices[i].Z, 1);
+                v = transform.GetModelMatrix() * v;
+                transformedVertices[i] = new Vec3(v.X, v.Y, v.Z);
+            }
+            
         }
 
         
@@ -261,14 +389,48 @@ namespace Physics_Engine
         public Vec3 normal { get; set; }
         public Vec3 point { get; set; }
 
-        public Plane( VertexAttributes attributes, ShadingAttributes shading, Vec3 normal, Vec3 point)
+        public Plane(Transform transform, VertexAttributes attributes, ShadingAttributes shading, Vec3 normal, Vec3 point)
         {
-            
+            this.transform = transform;
+
             this.vertices = [point];
             this.attributes = attributes;
             this.normal = normal;
             this.point = point;
             this.shading = shading;
+
+            transformedVertices = new Vec3[vertices.Length];
+
+            double xmax = vertices[0].X;
+            double xmin = vertices[0].X;
+            double ymax = vertices[0].Y;
+            double ymin = vertices[0].Y;
+            double zmax = vertices[0].Z;
+            double zmin = vertices[0].Z;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                if (vertices[i].X > xmax) xmax = vertices[i].X;
+                if (vertices[i].X < xmin) xmin = vertices[i].X;
+                if (vertices[i].Y > ymax) ymax = vertices[i].Y;
+                if (vertices[i].Y < ymin) ymin = vertices[i].Y;
+                if (vertices[i].Z > zmax) zmax = vertices[i].Z;
+                if (vertices[i].Z < zmin) zmin = vertices[i].Z;
+
+
+            }
+            offset = new Vec3((xmax + xmin) / 2, (ymax + ymin) / 2, (zmax + zmin) / 2);
+            transform.position += offset;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] = vertices[i] - offset;
+            }
+            for (int i = 0; i < transformedVertices.Length; i++)
+            {
+                Vec4 v = new Vec4(vertices[i].X, vertices[i].Y, vertices[i].Z, 1);
+                v = transform.GetModelMatrix() * v;
+                transformedVertices[i] = new Vec3(v.X, v.Y, v.Z);
+            }
+            
         }
         
     }
@@ -279,16 +441,50 @@ namespace Physics_Engine
         public double square_radius { get; set; }
         public Plane p;
 
-        public Disk(Vec3 center, VertexAttributes attributes,ShadingAttributes shading, Vec3 normal, double radius)
+        public Disk(Transform transform,Vec3 center, VertexAttributes attributes,ShadingAttributes shading, Vec3 normal, double radius)
         {
+            this.transform = transform;
+
             this.attributes= attributes;
-            
             this.normal = normal;
             this.radius = radius;
             this.square_radius = Math.Pow(radius,2);
             this.vertices = [center];
             this.shading = shading;
-            p = new Plane(attributes, shading, normal, this.vertices[0]);
+
+            transformedVertices = new Vec3[vertices.Length];
+
+            double xmax = vertices[0].X;
+            double xmin = vertices[0].X;
+            double ymax = vertices[0].Y;
+            double ymin = vertices[0].Y;
+            double zmax = vertices[0].Z;
+            double zmin = vertices[0].Z;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                if (vertices[i].X > xmax) xmax = vertices[i].X;
+                if (vertices[i].X < xmin) xmin = vertices[i].X;
+                if (vertices[i].Y > ymax) ymax = vertices[i].Y;
+                if (vertices[i].Y < ymin) ymin = vertices[i].Y;
+                if (vertices[i].Z > zmax) zmax = vertices[i].Z;
+                if (vertices[i].Z < zmin) zmin = vertices[i].Z;
+
+
+            }
+            offset = new Vec3((xmax + xmin) / 2, (ymax + ymin) / 2, (zmax + zmin) / 2);
+            transform.position += offset;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] = vertices[i] - offset;
+            }
+            for (int i = 0; i < transformedVertices.Length; i++)
+            {
+                Vec4 v = new Vec4(vertices[i].X, vertices[i].Y, vertices[i].Z, 1);
+                v = transform.GetModelMatrix() * v;
+                transformedVertices[i] = new Vec3(v.X, v.Y, v.Z);
+            }
+            
+            p = new Plane(transform, attributes, shading, normal, transformedVertices[0]);
 
         }
         
@@ -297,14 +493,59 @@ namespace Physics_Engine
     public class Triangle : SceneObject
     {
         public Vec3 normal { get; set; }
-        public Triangle(Vec3[] vertices, Vec3 normal, VertexAttributes attributes, ShadingAttributes shading)
+        public Triangle(Transform transform, Vec3[] vertices, Vec3 normal, VertexAttributes attributes, ShadingAttributes shading, bool isFromMesh = false)
         {
-            
+            this.transform = transform;
+
             this.vertices = vertices;
             this.attributes = attributes;
             this.shading = shading;
             this.normal = normal;
 
+            transformedVertices = new Vec3[vertices.Length];
+
+            double xmax = vertices[0].X;
+            double xmin = vertices[0].X;
+            double ymax = vertices[0].Y;
+            double ymin = vertices[0].Y;
+            double zmax = vertices[0].Z;
+            double zmin = vertices[0].Z;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                if (vertices[i].X > xmax) xmax = vertices[i].X;
+                if (vertices[i].X < xmin) xmin = vertices[i].X;
+                if (vertices[i].Y > ymax) ymax = vertices[i].Y;
+                if (vertices[i].Y < ymin) ymin = vertices[i].Y;
+                if (vertices[i].Z > zmax) zmax = vertices[i].Z;
+                if (vertices[i].Z < zmin) zmin = vertices[i].Z;
+
+
+            }
+            offset = new Vec3((xmax + xmin) / 2, (ymax + ymin) / 2, (zmax + zmin) / 2);
+            if(!isFromMesh)
+            {
+                transform.position += offset;
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    vertices[i] = vertices[i] - offset;
+                }
+                for (int i = 0; i < transformedVertices.Length; i++)
+                {
+                    Vec4 v = new Vec4(vertices[i].X, vertices[i].Y, vertices[i].Z, 1);
+                    v = transform.GetModelMatrix() * v;
+                    transformedVertices[i] = new Vec3(v.X, v.Y, v.Z);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    transformedVertices[i] = vertices[i];
+                }
+                
+            }
+            
+            
 
         }
 
